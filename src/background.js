@@ -32,6 +32,6 @@ api.runtime.onMessage.addListener((message, sender, respond) => {
     }
     return null;
   };
-  run().then(value => respond({ value }), error => respond({ error: error.message }));
+  run().then(value => respond({ value, buildId }), error => respond({ error: error.message, buildId }));
   return true;
 });

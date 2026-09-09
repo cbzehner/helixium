@@ -20,6 +20,7 @@ def key(value):
 
 try:
     for line in sys.stdin:
+        command = {}
         try:
             command = json.loads(line)
             match command['action']:
@@ -35,9 +36,9 @@ try:
                     client.captureScreen(command['path'])
                 case _:
                     raise ValueError('Unknown VNC action')
-            print(json.dumps({'ok': True}), flush=True)
+            print(json.dumps({'id': command['id'], 'ok': True}), flush=True)
         except Exception as error:
-            print(json.dumps({'error': str(error)}), flush=True)
+            print(json.dumps({'id': command.get('id'), 'error': str(error)}), flush=True)
 finally:
     client.disconnect()
     api.shutdown()

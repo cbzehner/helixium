@@ -16,7 +16,8 @@ SBX = shutil.which("sbx") or str(Path.home() / ".local/bin/sbx")
 
 
 def run(*args, **kwargs):
-    return subprocess.run(args, cwd=ROOT, check=True, **kwargs)
+    kwargs.setdefault("check", True)
+    return subprocess.run(args, cwd=ROOT, **kwargs)
 
 
 def output(*args):
@@ -30,16 +31,18 @@ def environment_args(name, agent, template):
 
 def execute(name, *args, **kwargs):
     interactive = ["-i"] if "input" in kwargs or "stdin" in kwargs else []
-    return run(SBX, "exec", *interactive, name, *args, **kwargs)
+    return run(SBX, "exec", *interactive, "-w", "/home/agent", name, *args, **kwargs)
 
 
-def seed(name, agent, template):
-    base = copy_source(lambda *args, **kwargs: execute(name, *args, **kwargs),
-                       WORKSPACE, "/home/agent/.helixium-sandbox-base")
+def seed(name):
     state = ROOT / ".sandbox" / f"{name}.json"
-    state.parent.mkdir(exist_ok=True)
-    state.write_text(json.dumps({"name": name, "agent": agent,
-                                 "template": template, "base": base}, indent=2) + "\n")
+    configuration = json.loads(state.read_text())
+    configuration["phase"] = "copying"
+    state.write_text(json.dumps(configuration, indent=2) + "\n")
+    base = copy_source(lambda *args, **kwargs: execute(name, *args, **kwargs),
+                       WORKSPACE)
+    configuration.update(base=base, phase="copied")
+    state.write_text(json.dumps(configuration, indent=2) + "\n")
     run(SBX, "exec", "-w", WORKSPACE, name, "devenv", "shell", "--", "npm", "ci")
     run(SBX, "exec", "-w", WORKSPACE, name, "devenv", "shell", "--", "node",
         "node_modules/playwright-core/cli.js", "install", "--with-deps", "chromium", "firefox", "webkit")
@@ -65,13 +68,15 @@ for attempt in range(60):
 else:
     raise SystemExit("Browser desktop did not start; inspect /tmp/helixium-browser.log inside the sandbox")
 ''')
+    configuration["phase"] = "ready"
+    state.write_text(json.dumps(configuration, indent=2) + "\n")
     print(f"Ready: just sandbox-attach {name}")
     run(SBX, "ports", name)
 
 
 def export(name):
     return export_source(lambda *args, **kwargs: execute(name, *args, **kwargs),
-                         WORKSPACE, "/home/agent/.helixium-sandbox-base", name)
+                         WORKSPACE, name)
 
 
 def main():
@@ -93,10 +98,15 @@ def main():
         existing = json.loads(output(SBX, "ls", "--json"))["sandboxes"]
         if any(sandbox["name"] == args.name for sandbox in existing):
             parser.error("this sandbox already exists; attach to it instead")
+        state.parent.mkdir(exist_ok=True)
+        configuration = {"name": args.name, "agent": args.agent, "template": template, "phase": "creating"}
+        state.write_text(json.dumps(configuration, indent=2) + "\n")
         run(SBX, "env", "create", *environment_args(args.name, args.agent, template), "--auto-approve")
-        seed(args.name, args.agent, template)
+        configuration["phase"] = "created"
+        state.write_text(json.dumps(configuration, indent=2) + "\n")
+        seed(args.name)
     elif args.action == "seed":
-        seed(args.name, args.agent, template)
+        seed(args.name)
     elif args.action == "attach":
         run(SBX, "run", "--name", args.name)
     elif args.action == "exec":
@@ -108,10 +118,13 @@ def main():
         export(args.name)
     elif args.action == "remove":
         configuration = json.loads(state.read_text())
-        run(SBX, "stop", args.name)
-        export(args.name)
-        run(SBX, "env", "rm", *environment_args(args.name, configuration["agent"],
-                                               configuration["template"]), "--force")
+        existing = json.loads(output(SBX, "ls", "--json"))["sandboxes"]
+        if any(sandbox["name"] == args.name for sandbox in existing):
+            if configuration["phase"] != "creating":
+                export(args.name)
+            run(SBX, "stop", args.name)
+            run(SBX, "env", "rm", *environment_args(args.name, configuration["agent"],
+                                                   configuration["template"]), "--force")
         state.unlink()
 
 

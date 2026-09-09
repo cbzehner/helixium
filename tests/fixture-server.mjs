@@ -52,7 +52,8 @@ export async function startFixtureServer(port = 0, host = '127.0.0.1', inspectio
       return;
     }
     response.setHeader('Content-Type', 'text/html');
-    response.end(Buffer.concat([request.url.startsWith('/frame') ? frame : page, Buffer.from(bridge)]));
+    const earlyCapture = request.url.includes('?early') ? `<script>window.pageKeys = 0; document.addEventListener('keydown', event => { if (event.key === 'j') { window.pageKeys++; event.stopImmediatePropagation(); } }, true);</script>` : '';
+    response.end(Buffer.concat([Buffer.from(earlyCapture), request.url.startsWith('/frame') ? frame : page, Buffer.from(bridge)]));
   });
   server.pages = pages;
   server.evaluate = (pageId, script) => new Promise((resolve, reject) => {

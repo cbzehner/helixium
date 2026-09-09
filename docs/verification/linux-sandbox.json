@@ -33,5 +33,18 @@
       "untracked frame fixture included",
       "ignored .sandbox and node_modules excluded"
     ]
+  },
+  "cleanupVerification": {
+    "sandbox": "helixium",
+    "baseCommit": "4c37e56e3fc26fd24f2c5c21e8090f27663c02eb",
+    "checks": [
+      "fresh default-template bootstrap",
+      "12 JavaScript and 6 workspace/lifecycle tests",
+      "Chromium Firefox and WebKit suites",
+      "restart and reseed of existing checkout",
+      "export preserves Git index",
+      "bundle clones and cumulative patch applies to base",
+      "removal confirmed, exports retained"
+    ]
   }
 }

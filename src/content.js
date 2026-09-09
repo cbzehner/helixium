@@ -4,6 +4,7 @@ let overlay;
 let hints = [];
 let hintPrefix = '';
 let hintNewTab = false;
+let backgroundBuild;
 let searchPattern = '';
 let searchDirection = 1;
 let lastPointerTarget;
@@ -31,6 +32,8 @@ function panel() {
   closeOverlay();
   overlay = document.createElement('div');
   overlay.setAttribute('data-helixium', '');
+  overlay.dataset.helixiumBuild = buildId;
+  if (backgroundBuild) overlay.dataset.helixiumBackgroundBuild = backgroundBuild;
   overlay.style.cssText = 'all:initial;position:fixed;inset:0;z-index:2147483647;pointer-events:none';
   const shadow = overlay.attachShadow({ mode: 'closed' });
   const style = document.createElement('style');
@@ -49,6 +52,8 @@ function message(text) {
 }
 async function send(command, details = {}) {
   const result = await api.runtime.sendMessage({ command, ...details });
+  if (result?.buildId !== buildId) throw new Error('Extension updated. Reload this page.');
+  backgroundBuild = result.buildId;
   if (result?.error) throw new Error(result.error);
   return result?.value;
 }
@@ -72,7 +77,7 @@ function showHints(newTab) {
   const interactiveSelector = 'iframe,a[href],button,input:not([type="hidden"]),textarea,select,[role="button"],[role="link"],[contenteditable]:not([contenteditable="false"])';
   const elements = [...document.querySelectorAll(`${interactiveSelector},[tabindex]`)]
     .filter(element => {
-      if (element.matches(':disabled,[aria-disabled="true"]') || element.closest('[inert]') || (!element.matches(interactiveSelector) && element.tabIndex < 0) || (newTab && !element.matches('a[href]'))) return false;
+      if (element.matches(':disabled,[aria-disabled="true"]') || element.closest('[inert]') || (!element.matches(interactiveSelector) && element.tabIndex < 0) || (newTab && (!element.matches('a[href]') || !['http:', 'https:'].includes(new URL(element.href).protocol)))) return false;
       const box = element.getBoundingClientRect();
       if (!box.width || !box.height || box.bottom <= 0 || box.right <= 0 || box.top >= innerHeight || box.left >= innerWidth || getComputedStyle(element).visibility !== 'visible') return false;
       const hit = document.elementFromPoint(Math.max(0, Math.min(innerWidth - 1, box.left + box.width / 2)), Math.max(0, Math.min(innerHeight - 1, box.top + box.height / 2)));
@@ -107,6 +112,10 @@ async function hintKey(key) {
     closeOverlay();
     if (!element.isConnected) return;
     if (newTab) await send('open', { url: element.href, background: true });
+    else if (element instanceof HTMLIFrameElement) {
+      element.focus();
+      if (document.activeElement !== element) element.contentWindow?.postMessage({ helixiumFocus: buildId }, '*');
+    }
     else { element.focus(); element.click(); }
   }
 }
@@ -191,8 +200,14 @@ async function execute(command, count) {
     }
     case 'open': prompt('Open HTTP(S) URL', url => send('open', { url: /^[a-z]+:/i.test(url) ? url : `https://${url}` })); break;
     case 'next-tab': case 'previous-tab': case 'close-tab': await send(command, { count }); break;
+    default: throw new Error(`Unknown command: ${command}`);
   }
 }
+// Cross-origin frames must request focus from their own content context.
+// This message only focuses the child; it cannot invoke browser commands.
+window.addEventListener('message', event => {
+  if (window !== parent && event.source === parent && event.data?.helixiumFocus === buildId) window.focus();
+});
 document.addEventListener('pointerdown', event => { lastPointerTarget = event.target; }, true);
 window.addEventListener('scroll', () => { if (hints.length) closeOverlay(); }, true);
 window.addEventListener('resize', () => { if (hints.length) closeOverlay(); });
@@ -206,9 +221,8 @@ document.addEventListener('keydown', event => {
     return;
   }
   const next = transition(state, key);
-  const handled = next.command || next.state !== state && (state.mode !== 'normal' || next.state.mode !== 'normal' || next.state.count);
   state = next.state;
-  if (!handled) return;
+  if (!next.consume) return;
   event.preventDefault();
   event.stopImmediatePropagation();
   if (next.command) execute(next.command, next.count).catch(error => message(error.message));

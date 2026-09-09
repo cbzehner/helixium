@@ -19,7 +19,12 @@ just sandbox-exec helixium devenv shell -- just test-browser
 just sandbox-exec helixium devenv up
 ```
 
-The launcher copies Git history, tracked edits, and non-ignored new files.
+The launcher copies Git history, tracked edits, and non-ignored new files
+into an empty destination. It stages the checkout before publishing it.
+If setup is interrupted, run `python3 scripts/sandbox.py seed helixium`
+again. Completed source copies are reused, preserving guest edits; dependency
+installation is safe to retry. Ownership is recorded before resource creation
+so `sandbox-remove` can also clean up a failed initial setup.
 It mounts no host directories and forwards no application credentials.
 sbx supplies its own agent authentication. Nix and browser profiles belong
 to the guest. The network policy permits package downloads; other external
@@ -54,13 +59,15 @@ just macos-exec helixium-safari devenv shell -- just test-safari
 ```
 
 The macOS guest receives a copied Git checkout using the same source/export
-code as sbx. It has no shared folders, audio, or host clipboard. Tart's guest
+code as sbx. Retry interrupted setup with `just macos-seed helixium-safari`;
+the completed checkout and guest edits are retained. It has no shared folders, audio, or host clipboard. Tart's guest
 agent carries commands and source bytes; no host SSH key is forwarded.
 The initial base image uses its public `admin` account. Don't use it for
 personal website logins. Nix and browser tooling are installed inside it.
 Safari tests send keyboard and mouse input through the guest’s loopback VNC
 server. The Python VNC dependency is managed by devenv.
 
+Only Chrome is downloaded on macOS; Safari ships in the pinned guest image.
 Chrome is installed by the locked Playwright CLI. The test uses Chrome's
 DevTools extension installer. Firefox uses `webExtension.install` through
 WebDriver BiDi. Safari 26.6.2 exposes BiDi only with its experimental capability, and
@@ -83,14 +90,22 @@ intentionally uses untrusted DOM events. Screenshots and browser metadata
 come from the same test run. VNC credentials default to the disposable base
 image's public account; `VNC_USER` and `VNC_PASSWORD` can override them.
 
+Chrome/Firefox browser tests rebuild automatically into clean artifact
+directories. Safari tests first verify that `dist/safari` matches the current
+source, then compare fingerprints from the running content and background
+scripts with that build. After a source change, build and reload Safari's
+temporary extension before testing. A stale or mixed installation fails
+verification rather than inheriting a result from an older build.
+
 Distribution through the App Store requires Apple's
 packaging/signing flow; it is separate from this development build.
 
 ## Evidence and cleanup
 
 Results and screenshots are written inside each guest's `test-results/`.
-Each JSON result identifies the browser version and whether the extension
-was installed. Preserve the artifacts before removing a guest.
+Each JSON result identifies the browser version, installed build fingerprint,
+source commit, and a digest of uncommitted changes. WebKit reports only the
+injected content-script artifact; it does not install an extension. Preserve the artifacts before removing a guest.
 
 ```sh
 just sandbox-export helixium
@@ -117,23 +132,28 @@ Verified on September 9, 2026:
 
 | Browser | Version | Verification | Result |
 | --- | --- | --- | --- |
-| Chrome (macOS) | 153.0.8010.37 | Installed extension, 19 checks | [Passed](verification/chrome.json) |
-| Firefox (Linux) | 151.0 | Installed extension, 19 checks | [Passed](verification/linux.json) |
-| Safari (macOS) | 26.6.2 | Installed temporary extension, 11 grouped checks | [Passed](verification/safari.json) |
-| Chromium (Linux) | 149.0.7827.0 | Installed extension, 19 checks | [Passed](verification/linux.json) |
-| WebKit (Linux) | 26.5 | Content script only, 13 checks | [Passed](verification/linux.json) |
+| Chrome (macOS) | 153.0.8010.37 | Installed extension, 20 checks | [Passed](verification/chrome.json) |
+| Firefox (Linux) | 151.0 | Installed extension, 20 checks | [Passed](verification/linux.json) |
+| Safari (macOS) | 26.6.2 | Installed temporary extension, 13 grouped checks | [Passed](verification/safari.json) |
+| Chromium (Linux) | 149.0.7827.0 | Installed extension, 20 checks | [Passed](verification/linux.json) |
+| WebKit (Linux) | 26.5 | Content script only, 14 checks | [Passed](verification/linux.json) |
 
 The suites cover counts and scrolling, Helix prefixes, editable controls,
-insert mode, synthetic-event rejection, link and control hints, frames,
+insert mode, synthetic-event rejection, link and control hints (including
+multi-character labels), same- and cross-origin frames, early page handlers,
 search, selection, and nested scrolling. Installed-extension suites also
-exercise background tabs, the private tab picker, tab cycling/closing,
-URL validation, and clipboard copying. Five keymap unit tests pass.
+exercise background tabs, the closed-shadow tab picker, tab cycling/closing,
+URL validation, and clipboard copying. The check command also runs 12
+JavaScript tests for keymaps, background actions, builds, and VNC, plus six
+Python tests for workspace copying and lifecycle recovery.
 This is fixture-based development verification, not an exhaustive audit of
 arbitrary websites or signed store packages.
 
 Sandbox lifecycle evidence: [Linux](verification/linux-sandbox.json) and
-[macOS](verification/macos-sandbox.json). Browser reports include artifact
-hashes; Safari installation and interaction screenshots are alongside them.
+[macOS](verification/macos-sandbox.json). Browser reports include artifact hashes and loaded build fingerprints; Safari
+installation and interaction screenshots are alongside them. A separate
+[stale Safari build check](verification/safari-build-mismatch.json) confirms
+that the runner rejects an outdated installation before functional tests.
 
 References: [Swimfrancisco-style sbx setup](https://docs.docker.com/ai/sandboxes/install/),
 [Tart](https://tart.run/quick-start/),

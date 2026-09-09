@@ -29,3 +29,27 @@ test('hint codes are unique, equal width, and prefix-free across radix boundarie
     assert.ok(labels.every(label => /^[asdfghjkl]+$/.test(label)));
   }
 });
+test('key consumption is explicit for counts, prefixes, invalid keys, and insert mode', () => {
+  for (const [keys, consume] of [
+    [['q'], false], [['3'], true], [['3', 'q'], false], [['g'], true], [['g', 'q'], true],
+    [['Z', 'q'], true], [['i', 'j'], false], [['i', 'Escape'], true],
+  ]) assert.equal(press(keys).consume, consume, keys.join(' '));
+});
+test('all motion variants retain counts and mode semantics', () => {
+  for (const [key, command] of Object.entries({ h: 'left', j: 'down', k: 'up', l: 'right', 'Ctrl-d': 'half-down', 'Ctrl-u': 'half-up', 'Ctrl-f': 'page-down', 'Ctrl-b': 'page-up' })) {
+    for (const prefix of [[], ['z'], ['Z']]) {
+      const result = press(['4', ...prefix, key]);
+      assert.equal(result.command, command);
+      assert.equal(result.count, 4);
+      assert.equal(result.consume, true);
+    }
+  }
+  for (const [key, command] of Object.entries({ g: 'top', e: 'bottom', h: 'start', l: 'end', n: 'next-tab', p: 'previous-tab', f: 'hints' })) {
+    assert.equal(press(['g', key]).command, command);
+  }
+  assert.equal(press(['v', ';']).command, 'collapse');
+});
+test('invalid hint label inputs are rejected', () => {
+  for (const count of [-1, 1.5, Infinity, NaN]) assert.throws(() => hintLabels(count), /Invalid hint count/);
+  for (const alphabet of ['', 'a', 'aa']) assert.throws(() => hintLabels(1, alphabet), /distinct characters/);
+});

@@ -16,6 +16,8 @@ and distribution are separate from these local development builds.
 Use `h j k l` to scroll, `g g` / `g e` to reach the start / end, `z` for
 one view motion and `Z` for sticky view mode. Numeric prefixes repeat
 motions. `v` extends text selections, and `y` copies selection or page URL.
+Copying requires a secure page (HTTPS or localhost), following the browser's
+[Clipboard API restrictions](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Interact_with_the_clipboard).
 `i` passes keys through until Escape. Input fields retain normal typing.
 
 Browser adaptations: `f` / `F` show link hints for the current / a new
@@ -33,3 +35,7 @@ browser settings pages, extension stores, or other restricted documents.
 The extension has no remote services or telemetry. Tab access supports
 the tab picker; clipboard write supports explicit yank commands. Content
 scripts run on HTTP(S) pages. No page data is persisted.
+
+Browser tests rebuild automatically. After changing source, rebuild and reload
+the temporary Safari extension before running its tests; stale installations
+are rejected. See [verification and recovery](docs/testing.md).

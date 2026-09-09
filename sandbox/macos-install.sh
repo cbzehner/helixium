@@ -5,7 +5,7 @@ if [[ ! -x /nix/var/nix/profiles/default/bin/nix ]]; then
   curl -fsSL https://releases.nixos.org/nix/nix-2.34.7/install -o /tmp/install-nix
   sh /tmp/install-nix --daemon --yes
 fi
-sudo tee -a /etc/nix/nix.conf >/dev/null <<'NIX'
+sudo tee /etc/nix/nix.conf >/dev/null <<'NIX'
 experimental-features = nix-command flakes
 trusted-users = root admin
 extra-substituters = https://devenv.cachix.org
@@ -20,6 +20,4 @@ export PATH="$HOME/.nix-profile/bin:$PATH"
 cd /Users/admin/workspace
 devenv shell -- npm ci
 devenv shell -- npm run build
-devenv shell -- node node_modules/playwright-core/cli.js install chromium firefox chrome
-# Changes only the guest's automation settings.
-sudo /usr/bin/safaridriver --enable
+devenv shell -- node node_modules/playwright-core/cli.js install chrome

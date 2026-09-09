@@ -1,5 +1,11 @@
 {
-  "artifactSha256": "c1da3725c7451a822886ca202acb9d29c617b328aaaf5899b88b22e2aaf9ba16",
+  "source": {
+    "commit": "4c37e56e3fc26fd24f2c5c21e8090f27663c02eb",
+    "dirty": true,
+    "worktreeSha256": "01eabd0f57e235c9f8899472a5d969b5a32a871c6468cd0c7ea16961ac7f3820"
+  },
+  "buildId": "c18b4c1a3a5678d3a9f30d8bd69a2bb0ce0562e9da0145cc4da3d24e5e571bfe",
+  "artifactSha256": "255a3c7ffd942d5f86e8d9bff3696da0328af92cf7eaf0e98ab70a353f8c65b0",
   "browser": "Safari",
   "installedExtension": true,
   "automation": "VNC keyboard/mouse; test-fixture DOM observation and setup",
@@ -7,14 +13,16 @@
     "scrolling, counts, Helix goto prefixes",
     "input, closed-shadow editor and insert-mode passthrough",
     "untrusted events ignored",
-    "embedded frame focus, scrolling and hints",
+    "same- and cross-origin frame focus, scrolling and hints",
     "link hints navigate",
     "button, ARIA button, input and contenteditable hints; hidden, disabled and inert exclusion",
     "search and repeat",
     "selection mode and nested scrolling",
-    "background-tab hints, tab picker and private picker DOM",
+    "background-tab protocol filtering, closed-shadow picker and loaded build fingerprints",
     "tab cycling and closing",
-    "URL scheme validation and clipboard yank"
+    "URL scheme validation and clipboard yank",
+    "early page capture handlers",
+    "multi-character hints"
   ],
   "result": "passed",
   "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6.2 Safari/605.1.15",

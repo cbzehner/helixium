@@ -1,0 +1,9 @@
+{
+  "browser": "Safari",
+  "version": "26.6.2",
+  "result": "passed",
+  "check": "Reject a previously installed extension after rebuilding different source bytes without reloading Safari",
+  "expectedBuildId": "02730970692000a12cdf31fa63fc57ae206effe583d7e33d043bca4e2339732a",
+  "loadedBuildId": "0304146e80d0d780fe21a482e178c889fce8b38c9e3ea42793c72e9df050df29",
+  "failureMessage": "Reload the current Safari build before testing"
+}

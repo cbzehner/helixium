@@ -21,5 +21,18 @@
     "exported bundle clones and cumulative patch applies to recorded base",
     "export preserves guest Git index",
     "removal confirmed, exports retained"
-  ]
+  ],
+  "cleanupVerification": {
+    "vm": "helixium-safari",
+    "baseCommit": "4c37e56e3fc26fd24f2c5c21e8090f27663c02eb",
+    "checks": [
+      "fresh pinned-image bootstrap with Chrome-only installation",
+      "12 JavaScript and 6 workspace/lifecycle tests",
+      "installed Chrome and Safari extension suites",
+      "Safari rejects a stale installed build",
+      "export preserves Git index",
+      "bundle clones and cumulative patch applies to base",
+      "removal confirmed, exports retained"
+    ]
+  }
 }

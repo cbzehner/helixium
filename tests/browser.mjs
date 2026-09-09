@@ -2,10 +2,13 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { installFirefoxExtension } from './firefox-install.mjs';
 import { readFile, mkdir, writeFile, mkdtemp, rm } from 'node:fs/promises';
+import { build, artifact, sourceRevision } from '../scripts/build.mjs';
 import { startFixtureServer } from './fixture-server.mjs';
 import { tmpdir } from 'node:os';
 import { resolve, join } from 'node:path';
 import { chromium, firefox, webkit } from 'playwright-core';
+await build();
+const revision = await sourceRevision();
 const server = await startFixtureServer();
 const origin = `http://127.0.0.1:${server.address().port}`;
 await mkdir('test-results', { recursive: true });
@@ -16,13 +19,18 @@ async function eventually(read, predicate) {
     if (predicate(value)) return;
     await new Promise(resolve => setTimeout(resolve, 50));
   }
-  assert.ok(predicate(await read()), 'Condition did not become true');
+  const value = await read();
+  assert.ok(predicate(value), `Condition did not become true: ${JSON.stringify(value)}`);
 }
 async function promptReady(page) {
   await page.waitForFunction(() => document.activeElement?.matches('[data-helixium]'));
 }
-async function exercise(page) {
+async function exercise(page, buildId) {
   await page.goto(origin);
+  await page.keyboard.press('f');
+  await page.locator('[data-helixium]').waitFor();
+  assert.equal(await page.locator('[data-helixium]').getAttribute('data-helixium-build'), buildId);
+  await page.keyboard.press('Escape');
   await page.evaluate(() => {
     for (const key of [' ', 'b', 'j']) document.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
   });
@@ -50,9 +58,10 @@ async function exercise(page) {
   await page.keyboard.type('j');
   assert.equal(await page.evaluate(() => scrollY), 0);
   await page.keyboard.press('Escape');
-  await page.keyboard.type('fj');
-  await page.keyboard.type('j');
   const frame = page.frame({ url: `${origin}/frame` });
+  await page.keyboard.type('fj');
+  await eventually(() => frame.evaluate(() => document.hasFocus()), Boolean);
+  await page.keyboard.type('j');
   await eventually(() => frame.evaluate(() => scrollY), value => value === 60);
   assert.equal(await page.evaluate(() => scrollY), 0);
   await frame.locator('body').press('g');
@@ -101,10 +110,37 @@ async function exercise(page) {
   await page.keyboard.type('j');
   await eventually(() => page.locator('#nested').evaluate(element => element.scrollTop), value => value === 60);
   await page.screenshot({ path: `test-results/${page.context().browser()?.browserType().name() || 'persistent'}.png` });
+  await page.goto(origin + '/?early');
+  await page.keyboard.press('j');
+  await eventually(() => page.evaluate(() => scrollY), value => value === 60);
+  assert.equal(await page.evaluate(() => window.pageKeys), 0);
+  await page.goto(origin);
+  const crossOrigin = origin.replace('127.0.0.1', 'localhost') + '/frame';
+  await page.locator('#frame').evaluate((frame, url) => { frame.src = url; }, crossOrigin);
+  await eventually(() => page.frames().some(frame => frame.url() === crossOrigin), Boolean);
+  const crossFrame = page.frame({ url: crossOrigin });
+  await crossFrame.waitForLoadState();
+  await page.keyboard.type('fj');
+  await eventually(() => crossFrame.evaluate(() => document.hasFocus()), Boolean);
+  await page.keyboard.press('j');
+  await eventually(() => crossFrame.evaluate(() => scrollY), value => value === 60);
+  assert.equal(await page.evaluate(() => scrollY), 0);
+  await page.goto(origin);
+  await page.evaluate(() => {
+    document.body.replaceChildren(...Array.from({ length: 10 }, (_, index) => {
+      const button = document.createElement('button');
+      button.textContent = `Target ${index}`;
+      button.onclick = () => { document.body.dataset.activated = String(index); };
+      return button;
+    }));
+  });
+  await page.keyboard.type('fsa');
+  await eventually(() => page.locator('body').getAttribute('data-activated'), value => value === '9');
 }
-async function exerciseExtensionActions(page, context) {
+async function exerciseExtensionActions(page, context, buildId) {
   await page.goto(origin);
   await page.bringToFront();
+  await page.evaluate(() => document.body.insertAdjacentHTML('afterbegin', '<a href="mailto:test@example.com">Mail</a><a href="javascript:void(0)">Script</a>'));
   await page.keyboard.type('F');
   await page.locator('[data-helixium]').waitFor();
   const created = context.waitForEvent('page');
@@ -116,11 +152,12 @@ async function exerciseExtensionActions(page, context) {
   await page.bringToFront();
   await page.keyboard.type(' b');
   await promptReady(page);
-  assert.equal(await page.locator('[data-helixium]').evaluate(element => element.shadowRoot), null, 'Tab titles stay outside the page DOM');
+  assert.equal(await page.locator('[data-helixium]').evaluate(element => element.shadowRoot), null, 'The tab picker uses a closed shadow root');
+  assert.equal(await page.locator('[data-helixium]').getAttribute('data-helixium-background-build'), buildId);
   await page.keyboard.type('Destination tab');
   await page.keyboard.press('Enter');
   await eventually(() => destination.evaluate(() => document.visibilityState), value => value === 'visible');
-  await destination.keyboard.type('gp');
+  await destination.keyboard.type(`${context.pages().length + 1}gp`);
   await eventually(() => page.evaluate(() => document.visibilityState), value => value === 'visible');
   await page.keyboard.type('gn');
   await eventually(() => destination.evaluate(() => document.visibilityState), value => value === 'visible');
@@ -170,12 +207,13 @@ try {
       if (engine === firefox) await installFirefoxExtension(9223);
       if (!installed) await context.addInitScript({ path: 'dist/chrome/content.js' });
       const page = await context.newPage();
-      await exercise(page);
-      if (installed) await exerciseExtensionActions(page, context);
-      const artifact = engine === firefox ? 'firefox' : 'chrome';
+      const browserArtifact = engine === firefox ? 'firefox' : 'chrome';
+      const expected = await artifact(browserArtifact);
+      await exercise(page, expected.buildId);
+      if (installed) await exerciseExtensionActions(page, context, expected.buildId);
       const digest = createHash('sha256');
-      for (const file of ['manifest.json', 'content.js', 'background.js']) digest.update(await readFile(`dist/${artifact}/${file}`));
-      results.push({ artifactSha256: digest.digest('hex'), browser: process.env.HELIXIUM_CHROME === '1' ? 'Chrome' : engine.name(), version: context.browser()?.version(), installedExtension: installed, result: 'passed', checks: ['scrolling and counts', 'Helix goto prefixes', 'input passthrough', 'insert mode', 'synthetic event rejection', 'link and button hints', 'focus input and contenteditable hints', 'ARIA button hints', 'hidden/disabled/inert exclusion', 'search and repeat', 'selection mode', 'nested scrolling', 'embedded frame focus, scrolling and hints', ...(installed ? ['background-tab hints', 'tab picker', 'private picker DOM', 'tab cycling and closing', 'URL scheme validation', 'clipboard yank'] : [])] });
+      for (const file of (installed ? ['manifest.json', 'content.js', 'background.js'] : ['content.js'])) digest.update(await readFile(`dist/${browserArtifact}/${file}`));
+      results.push({ source: revision, buildId: expected.buildId, artifactType: installed ? 'extension' : 'contentScriptOnly', artifactSha256: digest.digest('hex'), browser: process.env.HELIXIUM_CHROME === '1' ? 'Chrome' : engine.name(), version: context.browser()?.version(), installedExtension: installed, result: 'passed', checks: ['scrolling and counts', 'Helix goto prefixes', 'input passthrough', 'insert mode', 'synthetic event rejection', 'link, button and multi-character hints', 'focus input and contenteditable hints', 'ARIA button hints', 'hidden/disabled/inert exclusion', 'search and repeat', 'selection mode', 'nested scrolling', 'same- and cross-origin frame focus and scrolling', 'early page capture handlers', ...(installed ? ['background-tab hints exclude unsupported protocols', 'tab picker', 'closed-shadow picker and loaded build fingerprints', 'counted tab wrapping and closing', 'URL scheme validation', 'clipboard yank'] : [])] });
     } catch (error) {
       results.push({ browser: process.env.HELIXIUM_CHROME === '1' ? 'Chrome' : engine.name(), result: 'failed', error: error.stack });
       process.exitCode = 1;
