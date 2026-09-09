@@ -1,0 +1,48 @@
+schemaVersion: "2"
+kind: mixin
+name: helixium
+description: Isolated devenv and browser desktop
+permissions:
+  network:
+    allow:
+      - releases.nixos.org
+      - cache.nixos.org
+      - devenv.cachix.org
+      - cachix.cachix.org
+      - github.com
+      - api.github.com
+      - codeload.github.com
+      - release-assets.githubusercontent.com
+      - registry.npmjs.org
+      - cdn.playwright.dev
+      - playwright.download.prss.microsoft.com
+      - storage.googleapis.com
+      - archive.ubuntu.com:80
+      - security.ubuntu.com:80
+      - ports.ubuntu.com:80
+ports:
+  - container: 8787
+    name: fixture
+  - container: 6080
+    name: browser
+environment:
+  variables:
+    DISPLAY: ":99"
+    PLAYWRIGHT_BROWSERS_PATH: /opt/ms-playwright
+    PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS: "1"
+    GSETTINGS_SCHEMA_DIR: /usr/share/glib-2.0/schemas
+    NIX_SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+setup:
+  install:
+    - command: bash /home/agent/.local/lib/helixium-sandbox/install.sh
+      description: Install Nix, devenv, and private browser desktop
+  startup:
+    - command: [bash, /home/agent/.local/lib/helixium-sandbox/desktop.sh]
+      background: true
+      description: Start the private browser desktop
+agentInstructions:
+  content: |
+    Work in /home/agent/workspace using devenv shell. Read AGENTS.md.
+    Run just check and just test-browser. The visible browser CDP endpoint
+    is http://127.0.0.1:9222; the user can take over through noVNC.
+    Export changes before removing this disposable workspace.

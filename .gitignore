@@ -1,0 +1,8 @@
+.devenv*
+.direnv/
+node_modules/
+dist/
+.sandbox/
+test-results/
+.env
+.DS_Store

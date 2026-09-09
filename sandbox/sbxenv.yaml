@@ -1,0 +1,19 @@
+schemaVersion: "1"
+name: "${{ env.args.name }}"
+agent: "${{ env.args.agent }}"
+args:
+  name:
+    default: helixium
+    pattern: '^[a-z0-9][a-z0-9.-]+$'
+  agent:
+    default: codex
+    enum: [codex, claude, shell]
+  template:
+    default: ""
+kits:
+  - ./kit
+sandboxOptions:
+  template: "${{ env.args.template }}"
+  cpus: 4
+  memory: 8g
+  shareSkills: false
