@@ -1,0 +1,22 @@
+<!doctype html><meta charset="utf-8"><title>Helixium fixture</title>
+<style>body{font:18px sans-serif;margin:30px} #long{height:3000px} #nested{height:100px;overflow:auto;width:300px;border:1px solid} #nested div{height:500px}</style>
+<h1>Keyboard browsing fixture</h1><p id="words">Alpha beta gamma delta. Searchable needle and another needle.</p>
+<button disabled>Disabled</button><fieldset disabled><input></fieldset><a hidden href="/hidden">Hidden</a><span inert><a href="/inert">Inert</a></span>
+<a id="link" href="/destination">Destination</a><button id="button" onclick="this.textContent='Activated'">Action</button>
+<input id="input" aria-label="Typing"><div contenteditable="true" id="editable">Editable text</div>
+<div role="button" id="role" onclick="this.textContent='Role activated'">Role action</div>
+<div id="nested"><div>Nested scrolling</div></div><div id="long">Long page</div><p>End of page</p>
+
+<closed-editor id="closed" tabindex="0" style="position:fixed;right:20px;top:20px"></closed-editor>
+<script>
+customElements.define('closed-editor', class extends HTMLElement {
+  constructor() {
+    super();
+    const root = this.attachShadow({ mode: 'closed', delegatesFocus: true });
+    const input = document.createElement('input');
+    input.placeholder = 'Closed shadow editor';
+    input.addEventListener('input', () => this.dataset.value = input.value);
+    root.append(input);
+  }
+});
+</script>

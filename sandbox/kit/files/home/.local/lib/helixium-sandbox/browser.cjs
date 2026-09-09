@@ -9,6 +9,8 @@ const { chromium } = require('/home/agent/workspace/node_modules/playwright-core
       chromiumSandbox: true,
       viewport: null,
       args: [
+        '--disable-extensions-except=/home/agent/workspace/dist/chrome',
+        '--load-extension=/home/agent/workspace/dist/chrome',
         '--start-maximized', '--hide-crash-restore-bubble',
         '--remote-debugging-port=9222', '--remote-debugging-address=127.0.0.1',
       ],

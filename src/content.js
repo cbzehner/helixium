@@ -32,7 +32,7 @@ function panel() {
   overlay = document.createElement('div');
   overlay.setAttribute('data-helixium', '');
   overlay.style.cssText = 'all:initial;position:fixed;inset:0;z-index:2147483647;pointer-events:none';
-  const shadow = overlay.attachShadow({ mode: 'open' });
+  const shadow = overlay.attachShadow({ mode: 'closed' });
   const style = document.createElement('style');
   style.textContent = ':host{color-scheme:dark} .panel{pointer-events:auto;position:fixed;bottom:20px;right:20px;max-width:min(600px,90vw);max-height:70vh;overflow:auto;background:#16202b;color:#f3f5f7;border:1px solid #84d7b5;border-radius:6px;padding:14px;font:14px/1.6 ui-monospace,monospace;white-space:pre-wrap;box-shadow:0 4px 18px #0006} input{box-sizing:border-box;width:100%;padding:8px;background:#fff;color:#111;font:16px sans-serif} button{display:block;width:100%;text-align:left;color:inherit;background:transparent;border:0;padding:6px;cursor:pointer} button:focus{outline:2px solid #84d7b5}.hint{position:fixed;background:#ffdd66;color:#111;font:bold 13px monospace;padding:2px 4px;border:1px solid #111;border-radius:3px}';
   shadow.append(style);
@@ -53,6 +53,9 @@ async function send(command, details = {}) {
   return result?.value;
 }
 function editable(event) {
+  // Closed shadow roots conceal their inner focused control. Pass keys through
+  // focused custom elements rather than intercepting text we cannot inspect.
+  if (document.activeElement?.localName.includes('-')) return true;
   return event.composedPath().some(element => element instanceof Element &&
     (element.matches('input,textarea,select,[role="textbox"],[role="combobox"]') || element.isContentEditable));
 }
@@ -66,9 +69,10 @@ function scrollTarget() {
   return document.scrollingElement;
 }
 function showHints(newTab) {
-  const elements = [...document.querySelectorAll('a[href],button,input:not([type="hidden"]),textarea,select,[role="button"],[role="link"],[tabindex]')]
+  const interactiveSelector = 'a[href],button,input:not([type="hidden"]),textarea,select,[role="button"],[role="link"],[contenteditable]:not([contenteditable="false"])';
+  const elements = [...document.querySelectorAll(`${interactiveSelector},[tabindex]`)]
     .filter(element => {
-      if (element.disabled || element.closest('[inert]') || element.tabIndex < 0 || (newTab && !element.matches('a[href]'))) return false;
+      if (element.matches(':disabled,[aria-disabled="true"]') || element.closest('[inert]') || (!element.matches(interactiveSelector) && element.tabIndex < 0) || (newTab && !element.matches('a[href]'))) return false;
       const box = element.getBoundingClientRect();
       if (!box.width || !box.height || box.bottom <= 0 || box.right <= 0 || box.top >= innerHeight || box.left >= innerWidth || getComputedStyle(element).visibility !== 'visible') return false;
       const hit = document.elementFromPoint(Math.max(0, Math.min(innerWidth - 1, box.left + box.width / 2)), Math.max(0, Math.min(innerHeight - 1, box.top + box.height / 2)));
@@ -155,7 +159,12 @@ async function execute(command, count) {
     return;
   }
   switch (command) {
-    case 'escape': closeOverlay(); if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); break;
+    case 'escape': closeOverlay(); {
+      let focused = document.activeElement;
+      while (focused?.shadowRoot?.activeElement) focused = focused.shadowRoot.activeElement;
+      if (focused instanceof HTMLElement) focused.blur();
+      break;
+    }
     case 'top': target.scrollTo({ top: 0, behavior: 'instant' }); break;
     case 'bottom': target.scrollTo({ top: target.scrollHeight, behavior: 'instant' }); break;
     case 'start': target.scrollTo({ left: 0, behavior: 'instant' }); break;
@@ -188,8 +197,8 @@ document.addEventListener('pointerdown', event => { lastPointerTarget = event.ta
 window.addEventListener('scroll', () => { if (hints.length) closeOverlay(); }, true);
 window.addEventListener('resize', () => { if (hints.length) closeOverlay(); });
 document.addEventListener('keydown', event => {
-  if (event.isComposing || event.key === 'Process' || event.altKey || event.metaKey) return;
-  if (event.key !== 'Escape' && editable(event)) { state = initialState; return; }
+  if (!event.isTrusted || event.isComposing || event.key === 'Process' || event.altKey || event.metaKey) return;
+  if (event.key !== 'Escape' && (editable(event) || event.composedPath().includes(overlay))) { state = initialState; return; }
   const key = event.ctrlKey ? `Ctrl-${event.key.toLowerCase()}` : event.key;
   if (hints.length && key !== 'Escape') {
     event.preventDefault(); event.stopImmediatePropagation();

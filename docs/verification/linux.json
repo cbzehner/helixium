@@ -1,0 +1,77 @@
+[
+  {
+    "artifactSha256": "1dd51d2d32846191c1d91fcf7c6edfc1c92fa6988ab85a6141a4677827ad7353",
+    "browser": "chromium",
+    "version": "149.0.7827.0",
+    "installedExtension": true,
+    "result": "passed",
+    "checks": [
+      "scrolling and counts",
+      "Helix goto prefixes",
+      "input passthrough",
+      "insert mode",
+      "synthetic event rejection",
+      "link and button hints",
+      "focus input and contenteditable hints",
+      "ARIA button hints",
+      "hidden/disabled/inert exclusion",
+      "search and repeat",
+      "selection mode",
+      "nested scrolling",
+      "background-tab hints",
+      "tab picker",
+      "private picker DOM",
+      "tab cycling and closing",
+      "URL scheme validation",
+      "clipboard yank"
+    ]
+  },
+  {
+    "artifactSha256": "8bbd5704571918759953f346779ee6d3067559ce9600241667001b343a827673",
+    "browser": "firefox",
+    "version": "151.0",
+    "installedExtension": true,
+    "result": "passed",
+    "checks": [
+      "scrolling and counts",
+      "Helix goto prefixes",
+      "input passthrough",
+      "insert mode",
+      "synthetic event rejection",
+      "link and button hints",
+      "focus input and contenteditable hints",
+      "ARIA button hints",
+      "hidden/disabled/inert exclusion",
+      "search and repeat",
+      "selection mode",
+      "nested scrolling",
+      "background-tab hints",
+      "tab picker",
+      "private picker DOM",
+      "tab cycling and closing",
+      "URL scheme validation",
+      "clipboard yank"
+    ]
+  },
+  {
+    "artifactSha256": "1dd51d2d32846191c1d91fcf7c6edfc1c92fa6988ab85a6141a4677827ad7353",
+    "browser": "webkit",
+    "version": "26.5",
+    "installedExtension": false,
+    "result": "passed",
+    "checks": [
+      "scrolling and counts",
+      "Helix goto prefixes",
+      "input passthrough",
+      "insert mode",
+      "synthetic event rejection",
+      "link and button hints",
+      "focus input and contenteditable hints",
+      "ARIA button hints",
+      "hidden/disabled/inert exclusion",
+      "search and repeat",
+      "selection mode",
+      "nested scrolling"
+    ]
+  }
+]

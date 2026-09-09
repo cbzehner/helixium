@@ -2,14 +2,12 @@
 """Create disposable sbx workspaces without mounting the host checkout."""
 
 import argparse
-from datetime import datetime, timezone
 import json
 from pathlib import Path
 import re
 import shutil
 import subprocess
-import tarfile
-import tempfile
+from workspace import copy_source, export_source
 
 ROOT = Path(__file__).resolve().parents[1]
 ENVIRONMENT = ROOT / "sandbox/sbxenv.yaml"
@@ -30,35 +28,14 @@ def environment_args(name, agent, template):
             "--env-arg", f"agent={agent}", "--env-arg", f"template={template}"]
 
 
+def execute(name, *args, **kwargs):
+    interactive = ["-i"] if "input" in kwargs or "stdin" in kwargs else []
+    return run(SBX, "exec", *interactive, name, *args, **kwargs)
+
+
 def seed(name, agent, template):
-    # Refuse to reset an existing guest checkout, including after a partial run.
-    run(SBX, "exec", name, "test", "!", "-e", f"{WORKSPACE}/.git")
-    base = output("git", "rev-parse", "HEAD").decode().strip()
-    patch = output("git", "diff", "--binary", "--no-ext-diff", "HEAD")
-    untracked = output("git", "ls-files", "--others", "--exclude-standard", "-z")
-    with tempfile.TemporaryDirectory(prefix="helixium-sandbox-") as temporary:
-        bundle = Path(temporary) / "source.bundle"
-        run("git", "bundle", "create", str(bundle), "HEAD")
-        with bundle.open("rb") as stream:
-            run(SBX, "exec", "-i", name, "sh", "-c",
-                "cat > /tmp/helixium-source.bundle", stdin=stream)
-        run(SBX, "exec", "-w", WORKSPACE, name, "bash", "-ec",
-            "git init -b main; git fetch /tmp/helixium-source.bundle HEAD; "
-            "git reset --hard FETCH_HEAD; rm /tmp/helixium-source.bundle")
-        if patch:
-            run(SBX, "exec", "-i", "-w", WORKSPACE, name, "git", "apply",
-                "--binary", "--whitespace=nowarn", "-", input=patch)
-        archive = Path(temporary) / "untracked.tar"
-        with tarfile.open(archive, "w") as tar:
-            for raw_path in untracked.split(b"\0"):
-                if raw_path:
-                    path = raw_path.decode()
-                    tar.add(ROOT / path, arcname=path, recursive=False)
-        with archive.open("rb") as stream:
-            run(SBX, "exec", "-i", name, "tar", "-xf", "-", "-C", WORKSPACE,
-                stdin=stream)
-    run(SBX, "exec", "-i", name, "sh", "-c",
-        "cat > /home/agent/.helixium-sandbox-base", input=(base + "\n").encode())
+    base = copy_source(lambda *args, **kwargs: execute(name, *args, **kwargs),
+                       WORKSPACE, "/home/agent/.helixium-sandbox-base")
     state = ROOT / ".sandbox" / f"{name}.json"
     state.parent.mkdir(exist_ok=True)
     state.write_text(json.dumps({"name": name, "agent": agent,
@@ -66,6 +43,7 @@ def seed(name, agent, template):
     run(SBX, "exec", "-w", WORKSPACE, name, "devenv", "shell", "--", "npm", "ci")
     run(SBX, "exec", "-w", WORKSPACE, name, "devenv", "shell", "--", "node",
         "node_modules/playwright-core/cli.js", "install", "--with-deps", "chromium", "firefox", "webkit")
+    run(SBX, "exec", "-w", WORKSPACE, name, "devenv", "shell", "--", "npm", "run", "build")
     # Pin the project's Node for browser startup without concurrent devenv evaluation.
     run(SBX, "exec", "-w", WORKSPACE, name, "devenv", "shell", "--", "bash", "-ec", '''
         node_package=$(dirname "$(dirname "$(readlink -f "$(command -v node)")")")
@@ -92,26 +70,8 @@ else:
 
 
 def export(name):
-    run(SBX, "exec", "-w", WORKSPACE, name, "bash", "-ec", r'''
-        export_dir=$(mktemp -d /tmp/helixium-export.XXXXXX)
-        export GIT_INDEX_FILE="$export_dir/index"
-        git read-tree HEAD
-        git add -A -- .
-        git diff --cached --binary "$(cat /home/agent/.helixium-sandbox-base)" \
-            > "$export_dir/changes.patch"
-        git bundle create "$export_dir/commits.bundle" HEAD
-        cp /home/agent/.helixium-sandbox-base "$export_dir/base.txt"
-        rm "$GIT_INDEX_FILE"
-        printf '%s' "$export_dir" > /tmp/helixium-last-export
-    ''')
-    source = output(SBX, "exec", name, "cat", "/tmp/helixium-last-export").decode().strip()
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
-    destination = ROOT / ".sandbox/exports" / f"{name}-{stamp}"
-    destination.mkdir(parents=True, exist_ok=False)
-    for filename in ("changes.patch", "commits.bundle", "base.txt"):
-        run(SBX, "cp", f"{name}:{source}/{filename}", str(destination / filename))
-    print(f"Exported changes and commits to {destination}")
-    return destination
+    return export_source(lambda *args, **kwargs: execute(name, *args, **kwargs),
+                         WORKSPACE, "/home/agent/.helixium-sandbox-base", name)
 
 
 def main():

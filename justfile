@@ -19,3 +19,27 @@ sandbox-export name='helixium':
 
 sandbox-remove name='helixium':
     python3 scripts/sandbox.py remove {{name}}
+
+macos-create name='helixium-safari':
+    python3 scripts/macos-sandbox.py create {{name}}
+
+macos-start name='helixium-safari':
+    python3 scripts/macos-sandbox.py start {{name}}
+
+macos-seed name='helixium-safari':
+    python3 scripts/macos-sandbox.py seed {{name}}
+
+macos-exec name +command:
+    python3 scripts/macos-sandbox.py exec {{name}} -- {{command}}
+
+macos-export name='helixium-safari':
+    python3 scripts/macos-sandbox.py export {{name}}
+
+macos-remove name='helixium-safari':
+    python3 scripts/macos-sandbox.py remove {{name}}
+
+test-chrome:
+    HELIXIUM_CHROME=1 npm run test:browser
+
+test-safari:
+    npm run test:safari

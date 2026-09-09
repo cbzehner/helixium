@@ -1,0 +1,26 @@
+{
+  "sandbox": "helixium-clean",
+  "template": "docker/sandbox-templates:codex-docker",
+  "sbxVersion": "0.42.1",
+  "result": "passed",
+  "checks": [
+    "fresh bootstrap from default template",
+    "devenv build and unit suite",
+    "installed Chromium and Firefox extension suites",
+    "WebKit content suite explicitly separate",
+    "private desktop loads extension",
+    "restart and concurrent devenv commands",
+    "loopback-only published ports",
+    "noVNC HTML, WebSocket and RFB handshake",
+    "HTTPS through proxy CA without TLS bypass",
+    "no host checkout or home mounts",
+    "no forwarded SSH agent socket",
+    "ignored environment file absent",
+    "cumulative export includes guest commit, deletion, new file and staged file",
+    "export excludes ignored file",
+    "export preserves guest Git index hash",
+    "bundle verifies and patch applies to recorded base",
+    "removal confirmed, exports retained"
+  ],
+  "baseCommit": "da91c7ff66cc1bbed83a7c6ee86e02215ccf409e"
+}
