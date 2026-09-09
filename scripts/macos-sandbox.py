@@ -14,7 +14,7 @@ from workspace import ROOT, copy_source, export_source
 TART = os.environ.get("TART") or shutil.which("tart") or str(ROOT / ".sandbox/tools/tart.app/Contents/MacOS/tart")
 WORKSPACE = "/Users/admin/workspace"
 BASE_FILE = "/Users/admin/.helixium-sandbox-base"
-IMAGE = "ghcr.io/cirruslabs/macos-tahoe-base:latest"
+IMAGE = "ghcr.io/cirruslabs/macos-tahoe-base@sha256:1b093499716409d29e8b5336844528e1cae375db97d2ad8e5aeff78cf0da201e"
 
 
 def run(*args, **kwargs):

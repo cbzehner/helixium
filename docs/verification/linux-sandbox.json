@@ -22,5 +22,16 @@
     "bundle verifies and patch applies to recorded base",
     "removal confirmed, exports retained"
   ],
-  "baseCommit": "da91c7ff66cc1bbed83a7c6ee86e02215ccf409e"
+  "baseCommit": "da91c7ff66cc1bbed83a7c6ee86e02215ccf409e",
+  "browserResults": "linux-fresh.json",
+  "sharedSourceCopy": {
+    "sandbox": "helixium",
+    "baseCommit": "370e98087d734a83f43f26be35c7a586c5d07291",
+    "checks": [
+      "copied into empty guest checkout using shared transport",
+      "tracked edits match host byte-for-byte",
+      "untracked frame fixture included",
+      "ignored .sandbox and node_modules excluded"
+    ]
+  }
 }

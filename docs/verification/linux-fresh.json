@@ -1,6 +1,6 @@
 [
   {
-    "artifactSha256": "cb84f986a4ec29f8a0e872bc98c90e648e70ec8d4fbeced56a19f018d1ed950f",
+    "artifactSha256": "1dd51d2d32846191c1d91fcf7c6edfc1c92fa6988ab85a6141a4677827ad7353",
     "browser": "chromium",
     "version": "149.0.7827.0",
     "installedExtension": true,
@@ -18,7 +18,6 @@
       "search and repeat",
       "selection mode",
       "nested scrolling",
-      "embedded frame focus, scrolling and hints",
       "background-tab hints",
       "tab picker",
       "private picker DOM",
@@ -28,7 +27,7 @@
     ]
   },
   {
-    "artifactSha256": "f695084980d631e3fc26a03180ec3ed181f86d3a84826846641bf1a03d10f312",
+    "artifactSha256": "8bbd5704571918759953f346779ee6d3067559ce9600241667001b343a827673",
     "browser": "firefox",
     "version": "151.0",
     "installedExtension": true,
@@ -46,7 +45,6 @@
       "search and repeat",
       "selection mode",
       "nested scrolling",
-      "embedded frame focus, scrolling and hints",
       "background-tab hints",
       "tab picker",
       "private picker DOM",
@@ -56,7 +54,7 @@
     ]
   },
   {
-    "artifactSha256": "cb84f986a4ec29f8a0e872bc98c90e648e70ec8d4fbeced56a19f018d1ed950f",
+    "artifactSha256": "1dd51d2d32846191c1d91fcf7c6edfc1c92fa6988ab85a6141a4677827ad7353",
     "browser": "webkit",
     "version": "26.5",
     "installedExtension": false,
@@ -73,8 +71,7 @@
       "hidden/disabled/inert exclusion",
       "search and repeat",
       "selection mode",
-      "nested scrolling",
-      "embedded frame focus, scrolling and hints"
+      "nested scrolling"
     ]
   }
 ]

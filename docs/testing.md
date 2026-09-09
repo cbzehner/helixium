@@ -1,8 +1,8 @@
 # Browser verification
 
 Project dependencies come from `devenv.nix`, `devenv.lock`, and
-`package-lock.json`. Build and run tests inside the guests. Tests load the
-packaged extension in Chromium, Firefox, Chrome, and Safari; the additional
+`package-lock.json`. Build and run tests inside the guests. Automated tests load the
+packaged extension in Chromium, Firefox, and Chrome; the additional
 Linux WebKit check exercises only the content script and is labeled as such.
 
 ## Linux microVM
@@ -49,6 +49,7 @@ just macos-start helixium-safari
 just macos-seed helixium-safari
 just macos-exec helixium-safari devenv shell -- just check
 just macos-exec helixium-safari devenv shell -- just test-chrome
+# Load the temporary Safari extension as described below first.
 just macos-exec helixium-safari devenv shell -- just test-safari
 ```
 
@@ -57,18 +58,32 @@ code as sbx. It has no shared folders, audio, or host clipboard. Tart's guest
 agent carries commands and source bytes; no host SSH key is forwarded.
 The initial base image uses its public `admin` account. Don't use it for
 personal website logins. Nix and browser tooling are installed inside it.
-SafariDriver automation is enabled only in that guest.
+Safari tests send keyboard and mouse input through the guest’s loopback VNC
+server. The Python VNC dependency is managed by devenv.
 
 Chrome is installed by the locked Playwright CLI. The test uses Chrome's
 DevTools extension installer. Firefox uses `webExtension.install` through
-WebDriver BiDi. Safari uses its native SafariDriver and BiDi extension
-installer. The tests never substitute injected content scripts when an
-installed-extension test fails.
+WebDriver BiDi. Safari 26.6.2 exposes BiDi only with its experimental capability, and
+rejects `webExtension.install` because that domain is unavailable. Safari
+extension verification therefore requires its normal browser profile and
+temporary-extension UI. An injected content-script check does not verify
+an installed Safari extension.
 
 For interactive Safari development, Safari Settings → Advanced → Show
 features for web developers enables the Developer tab. Add Temporary
 Extension there and choose `dist/safari`. Temporary extensions are removed
-when Safari quits. Distribution through the App Store requires Apple's
+when Safari quits. Grant Helixium access to all websites in this disposable
+guest so fixtures on random localhost ports can run. Keep the guest desktop
+unlocked and Safari in front while running `just test-safari`.
+
+The Safari runner observes fixture DOM state through a polling bridge served
+only by the test process. It does not inject the extension or send synthetic
+input for extension commands. The separate synthetic-event rejection test
+intentionally uses untrusted DOM events. Screenshots and browser metadata
+come from the same test run. VNC credentials default to the disposable base
+image's public account; `VNC_USER` and `VNC_PASSWORD` can override them.
+
+Distribution through the App Store requires Apple's
 packaging/signing flow; it is separate from this development build.
 
 ## Evidence and cleanup
@@ -98,8 +113,27 @@ restart, loopback ports, lack of host mounts and forwarded SSH agent,
 export of commits/deletions/new files, patch application to the recorded
 base, preservation of the guest index, and removal.
 
-Validation is in progress. The final browser matrix will be recorded here
-once the native Chrome and Safari checks finish.
+Verified on September 9, 2026:
+
+| Browser | Version | Verification | Result |
+| --- | --- | --- | --- |
+| Chrome (macOS) | 153.0.8010.37 | Installed extension, 19 checks | [Passed](verification/chrome.json) |
+| Firefox (Linux) | 151.0 | Installed extension, 19 checks | [Passed](verification/linux.json) |
+| Safari (macOS) | 26.6.2 | Installed temporary extension, 11 grouped checks | [Passed](verification/safari.json) |
+| Chromium (Linux) | 149.0.7827.0 | Installed extension, 19 checks | [Passed](verification/linux.json) |
+| WebKit (Linux) | 26.5 | Content script only, 13 checks | [Passed](verification/linux.json) |
+
+The suites cover counts and scrolling, Helix prefixes, editable controls,
+insert mode, synthetic-event rejection, link and control hints, frames,
+search, selection, and nested scrolling. Installed-extension suites also
+exercise background tabs, the private tab picker, tab cycling/closing,
+URL validation, and clipboard copying. Five keymap unit tests pass.
+This is fixture-based development verification, not an exhaustive audit of
+arbitrary websites or signed store packages.
+
+Sandbox lifecycle evidence: [Linux](verification/linux-sandbox.json) and
+[macOS](verification/macos-sandbox.json). Browser reports include artifact
+hashes; Safari installation and interaction screenshots are alongside them.
 
 References: [Swimfrancisco-style sbx setup](https://docs.docker.com/ai/sandboxes/install/),
 [Tart](https://tart.run/quick-start/),

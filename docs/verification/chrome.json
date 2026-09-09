@@ -1,0 +1,30 @@
+[
+  {
+    "artifactSha256": "cb84f986a4ec29f8a0e872bc98c90e648e70ec8d4fbeced56a19f018d1ed950f",
+    "browser": "Chrome",
+    "version": "153.0.8010.37",
+    "installedExtension": true,
+    "result": "passed",
+    "checks": [
+      "scrolling and counts",
+      "Helix goto prefixes",
+      "input passthrough",
+      "insert mode",
+      "synthetic event rejection",
+      "link and button hints",
+      "focus input and contenteditable hints",
+      "ARIA button hints",
+      "hidden/disabled/inert exclusion",
+      "search and repeat",
+      "selection mode",
+      "nested scrolling",
+      "embedded frame focus, scrolling and hints",
+      "background-tab hints",
+      "tab picker",
+      "private picker DOM",
+      "tab cycling and closing",
+      "URL scheme validation",
+      "clipboard yank"
+    ]
+  }
+]

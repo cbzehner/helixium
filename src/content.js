@@ -69,7 +69,7 @@ function scrollTarget() {
   return document.scrollingElement;
 }
 function showHints(newTab) {
-  const interactiveSelector = 'a[href],button,input:not([type="hidden"]),textarea,select,[role="button"],[role="link"],[contenteditable]:not([contenteditable="false"])';
+  const interactiveSelector = 'iframe,a[href],button,input:not([type="hidden"]),textarea,select,[role="button"],[role="link"],[contenteditable]:not([contenteditable="false"])';
   const elements = [...document.querySelectorAll(`${interactiveSelector},[tabindex]`)]
     .filter(element => {
       if (element.matches(':disabled,[aria-disabled="true"]') || element.closest('[inert]') || (!element.matches(interactiveSelector) && element.tabIndex < 0) || (newTab && !element.matches('a[href]'))) return false;

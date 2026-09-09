@@ -1,0 +1,25 @@
+{
+  "vm": "helixium-safari",
+  "os": "ProductName:\t\tmacOS\nProductVersion:\t\t26.6.2\nBuildVersion:\t\t25G83",
+  "image": "ghcr.io/cirruslabs/macos-tahoe-base@sha256:1b093499716409d29e8b5336844528e1cae375db97d2ad8e5aeff78cf0da201e",
+  "isolation": {
+    "sharedHostMounts": false,
+    "hostHomePresent": false,
+    "copiedDotEnv": false,
+    "forwardedSSHIdentities": false,
+    "hostClipboard": false,
+    "audio": false
+  },
+  "transport": "Tart guest agent; copied Git checkout",
+  "result": "passed",
+  "checks": [
+    "fresh pinned-image bootstrap with devenv",
+    "guest restart and command transport",
+    "installed Chrome and Safari extension suites",
+    "GUI desktop with host clipboard and audio disabled",
+    "copied source without shared host directories",
+    "exported bundle clones and cumulative patch applies to recorded base",
+    "export preserves guest Git index",
+    "removal confirmed, exports retained"
+  ]
+}

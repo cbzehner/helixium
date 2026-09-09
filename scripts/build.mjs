@@ -8,7 +8,7 @@ for (const browser of ['chrome', 'firefox', 'safari']) {
     manifest_version: 3, name: 'Helixium', version: '0.1.0',
     description: 'Keyboard browsing with Helix-style modes, selections, and navigation.',
     permissions: ['tabs', 'clipboardWrite'],
-    content_scripts: [{ matches: ['http://*/*', 'https://*/*'], js: ['content.js'], run_at: 'document_idle' }],
+    content_scripts: [{ matches: ['http://*/*', 'https://*/*'], js: ['content.js'], all_frames: true, run_at: 'document_idle' }],
     background: browser === 'chrome' ? { service_worker: 'background.js' } : { scripts: ['background.js'] },
     ...(browser === 'firefox' && { browser_specific_settings: { gecko: { id: 'helixium@cbzehner.dev', strict_min_version: '140.0', data_collection_permissions: { required: ['none'] } } } }),
   };

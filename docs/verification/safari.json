@@ -1,0 +1,22 @@
+{
+  "artifactSha256": "c1da3725c7451a822886ca202acb9d29c617b328aaaf5899b88b22e2aaf9ba16",
+  "browser": "Safari",
+  "installedExtension": true,
+  "automation": "VNC keyboard/mouse; test-fixture DOM observation and setup",
+  "checks": [
+    "scrolling, counts, Helix goto prefixes",
+    "input, closed-shadow editor and insert-mode passthrough",
+    "untrusted events ignored",
+    "embedded frame focus, scrolling and hints",
+    "link hints navigate",
+    "button, ARIA button, input and contenteditable hints; hidden, disabled and inert exclusion",
+    "search and repeat",
+    "selection mode and nested scrolling",
+    "background-tab hints, tab picker and private picker DOM",
+    "tab cycling and closing",
+    "URL scheme validation and clipboard yank"
+  ],
+  "result": "passed",
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6.2 Safari/605.1.15",
+  "version": "26.6.2"
+}

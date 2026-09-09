@@ -2,16 +2,11 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { installFirefoxExtension } from './firefox-install.mjs';
 import { readFile, mkdir, writeFile, mkdtemp, rm } from 'node:fs/promises';
-import { createServer } from 'node:http';
+import { startFixtureServer } from './fixture-server.mjs';
 import { tmpdir } from 'node:os';
 import { resolve, join } from 'node:path';
 import { chromium, firefox, webkit } from 'playwright-core';
-const fixture = await readFile('tests/fixture.html');
-const server = createServer((request, response) => {
-  response.setHeader('Content-Type', 'text/html');
-  response.end(fixture);
-});
-await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+const server = await startFixtureServer();
 const origin = `http://127.0.0.1:${server.address().port}`;
 await mkdir('test-results', { recursive: true });
 const results = [];
@@ -55,6 +50,20 @@ async function exercise(page) {
   await page.keyboard.type('j');
   assert.equal(await page.evaluate(() => scrollY), 0);
   await page.keyboard.press('Escape');
+  await page.keyboard.type('fj');
+  await page.keyboard.type('j');
+  const frame = page.frame({ url: `${origin}/frame` });
+  await eventually(() => frame.evaluate(() => scrollY), value => value === 60);
+  assert.equal(await page.evaluate(() => scrollY), 0);
+  await frame.locator('body').press('g');
+  await frame.locator('body').press('g');
+  await eventually(() => frame.evaluate(() => scrollY), value => value === 0);
+  // Let the scroll event finish before opening hints (scrolling dismisses them).
+  await frame.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  await frame.locator('body').press('f');
+  await frame.locator('body').press('a');
+  await frame.waitForURL('**/frame?destination');
+  await page.goto(origin);
   await page.keyboard.type('f');
   await page.locator('[data-helixium]').waitFor();
   await page.keyboard.type('a');
@@ -166,7 +175,7 @@ try {
       const artifact = engine === firefox ? 'firefox' : 'chrome';
       const digest = createHash('sha256');
       for (const file of ['manifest.json', 'content.js', 'background.js']) digest.update(await readFile(`dist/${artifact}/${file}`));
-      results.push({ artifactSha256: digest.digest('hex'), browser: process.env.HELIXIUM_CHROME === '1' ? 'Chrome' : engine.name(), version: context.browser()?.version(), installedExtension: installed, result: 'passed', checks: ['scrolling and counts', 'Helix goto prefixes', 'input passthrough', 'insert mode', 'synthetic event rejection', 'link and button hints', 'focus input and contenteditable hints', 'ARIA button hints', 'hidden/disabled/inert exclusion', 'search and repeat', 'selection mode', 'nested scrolling', ...(installed ? ['background-tab hints', 'tab picker', 'private picker DOM', 'tab cycling and closing', 'URL scheme validation', 'clipboard yank'] : [])] });
+      results.push({ artifactSha256: digest.digest('hex'), browser: process.env.HELIXIUM_CHROME === '1' ? 'Chrome' : engine.name(), version: context.browser()?.version(), installedExtension: installed, result: 'passed', checks: ['scrolling and counts', 'Helix goto prefixes', 'input passthrough', 'insert mode', 'synthetic event rejection', 'link and button hints', 'focus input and contenteditable hints', 'ARIA button hints', 'hidden/disabled/inert exclusion', 'search and repeat', 'selection mode', 'nested scrolling', 'embedded frame focus, scrolling and hints', ...(installed ? ['background-tab hints', 'tab picker', 'private picker DOM', 'tab cycling and closing', 'URL scheme validation', 'clipboard yank'] : [])] });
     } catch (error) {
       results.push({ browser: process.env.HELIXIUM_CHROME === '1' ? 'Chrome' : engine.name(), result: 'failed', error: error.stack });
       process.exitCode = 1;
