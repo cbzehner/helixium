@@ -1,34 +1,46 @@
 # Helixium
 
-Keyboard browsing with Helix-style modes. Build using `devenv shell -- npm
-run build`, then load the browser-specific folder under `dist/`.
-Development and testing use disposable VMs; see [testing](docs/testing.md).
+Keyboard browsing with Helix-style modes for Chrome, Firefox, and Safari.
+
+## Install
+
+Requires Git, [Nix](https://nixos.org/download/), and
+[devenv](https://devenv.sh/getting-started/). Build from source:
+
+```sh
+git clone https://github.com/cbzehner/helixium.git
+cd helixium
+devenv shell -- npm run build
+```
+
+Load the matching folder below; keep this checkout in place.
 
 | Browser | Development installation |
 | --- | --- |
 | Chrome | Open `chrome://extensions`, enable Developer mode, select Load unpacked, and choose `dist/chrome`. |
 | Firefox | Open `about:debugging#/runtime/this-firefox`, select Load Temporary Add-on, and choose `dist/firefox/manifest.json`. |
-| Safari | Enable developer features in Safari settings, then use Developer → Add Temporary Extension and choose `dist/safari`. |
+| Safari | Settings → Advanced → Show features for web developers; then Developer → Add Temporary Extension (authenticate when prompted) → `dist/safari`. Enable Helixium under Extensions and allow access to the websites you want to control. |
 
-Firefox and Safari development installations are temporary. Store signing
-and distribution are separate from these local development builds.
+Reload existing tabs after installation. Firefox and Safari remove temporary
+extensions when they quit; Chrome keeps its unpacked installation. These are
+development builds, with no signed store package.
 
-Use `h j k l` to scroll, `g g` / `g e` to reach the start / end, `z` for
-one view motion and `Z` for sticky view mode. Numeric prefixes repeat
-motions. `v` extends text selections, and `y` copies selection or page URL.
+## Use
+
+`h j k l` scroll; `g g` / `g e` go to the top / bottom. Counts repeat
+motions; `z` applies one view motion, `Z` stays in view mode. `v` extends
+selections; `y` copies the selection or page URL.
 Copying requires a secure page (HTTPS or localhost), following the browser's
 [Clipboard API restrictions](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Interact_with_the_clipboard).
 `i` passes keys through until Escape. Input fields retain normal typing.
 
-Browser adaptations: `f` / `F` show link hints for the current / a new
-background tab. `g n` / `g p` switch tabs, Space b filters tabs, Space f
-opens a URL, and Space c closes the current tab. Hints can focus embedded
-frames; subsequent commands then operate within that frame. `/` / `?` search literal
-text forward / backward; `n` / `N` repeat. Space ? shows help.
+`f` / `F` show hints for the current / a new background tab. Hints also
+focus controls and frames. `g n` / `g p` switch tabs; Space b filters tabs,
+Space f opens a URL, Space c closes a tab. `/` / `?` search forward /
+backward; `n` / `N` repeat. Space ? shows help.
 
-These mappings follow [Helix's keymap](https://docs.helix-editor.com/keymap.html)
-where browsing has a corresponding action. Link hints replace character
-finding; search uses literal browser text search, not Helix regex search.
+Adapted from [Helix's keymap](https://docs.helix-editor.com/keymap.html):
+link hints replace character finding; search is literal, not regex.
 Browser-reserved shortcuts may take precedence. Extensions cannot run on
 browser settings pages, extension stores, or other restricted documents.
 
@@ -36,6 +48,13 @@ The extension has no remote services or telemetry. Tab access supports
 the tab picker; clipboard write supports explicit yank commands. Content
 scripts run on HTTP(S) pages. No page data is persisted.
 
-Browser tests rebuild automatically. After changing source, rebuild and reload
-the temporary Safari extension before running its tests; stale installations
-are rejected. See [verification and recovery](docs/testing.md).
+## Develop
+
+`src/` contains the keymap, page controls, and background tab actions;
+`scripts/` builds the extension and manages VMs; `tests/` holds the checks.
+Use disposable VMs for development and tests: [setup, commands, and
+verification](docs/testing.md).
+
+After source changes, rebuild, reload the extension in the browser's extension
+settings, and reload affected tabs. Automated browser tests rebuild for you;
+Safari requires manually reloading the current build before testing.
