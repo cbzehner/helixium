@@ -3,11 +3,43 @@ const movement = { h: 'left', j: 'down', k: 'up', l: 'right', 'Ctrl-d': 'half-do
 const bindings = {
   normal: { ...movement, f: 'hints', F: 'hints-tab', i: 'insert', v: 'select', '/': 'search', '?': 'search-backward', n: 'search-next', N: 'search-previous', y: 'yank', 'Ctrl-o': 'back', 'Ctrl-i': 'forward' },
   goto: { g: 'top', e: 'bottom', h: 'start', l: 'end', n: 'next-tab', p: 'previous-tab', f: 'hints' },
-  space: { '?': 'help', b: 'tabs', f: 'open', c: 'close-tab' },
+  space: { b: 'tabs', f: 'open', c: 'close-tab', '?': 'commands' },
   view: movement,
   'sticky-view': movement,
   select: { h: 'select-left', j: 'select-down', k: 'select-up', l: 'select-right', w: 'select-word', b: 'select-word-backward', y: 'yank', ';': 'collapse' },
 };
+
+const commandLabels = {
+  left: 'Scroll left', down: 'Scroll down', up: 'Scroll up', right: 'Scroll right',
+  'half-down': 'Scroll half page down', 'half-up': 'Scroll half page up',
+  'page-down': 'Scroll page down', 'page-up': 'Scroll page up',
+  top: 'Go to top', bottom: 'Go to bottom', start: 'Go to left edge', end: 'Go to right edge',
+  hints: 'Follow link or focus control', 'hints-tab': 'Open link in background tab',
+  insert: 'Pass keys to page', select: 'Select text', yank: 'Copy selection or page URL',
+  search: 'Find text forward', 'search-backward': 'Find text backward',
+  'search-next': 'Next search match', 'search-previous': 'Previous search match',
+  back: 'Go back in history', forward: 'Go forward in history',
+  'next-tab': 'Next tab', 'previous-tab': 'Previous tab', 'close-tab': 'Close tab',
+  tabs: 'Find tab', open: 'Open URL', commands: 'Search all commands',
+  'select-left': 'Extend selection left', 'select-down': 'Extend selection down',
+  'select-up': 'Extend selection up', 'select-right': 'Extend selection right',
+  'select-word': 'Extend selection by word', 'select-word-backward': 'Extend selection backward by word',
+  collapse: 'Collapse selection',
+};
+export const prefixLabels = { space: 'Space', goto: 'g', view: 'z', 'sticky-view': 'Z' };
+export function menuEntries(mode) {
+  return Object.entries(bindings[mode] ?? {}).map(([key, command]) => ({ key, command, label: commandLabels[command] }));
+}
+export function commandEntries() {
+  const seen = new Set(['commands']);
+  return Object.entries({ normal: [], goto: ['g'], space: [' '], select: ['v'] })
+    .flatMap(([mode, prefix]) => menuEntries(mode).flatMap(({ key, command, label }) => {
+      if (seen.has(command)) return [];
+      seen.add(command);
+      return [{ command, label, keys: [...prefix, key] }];
+    }));
+}
+export function shortcutLabel(keys) { return keys.map(key => key === ' ' ? 'Space' : key).join(' '); }
 
 export const initialState = Object.freeze({ mode: 'normal', count: '' });
 

@@ -1,13 +1,13 @@
 [
   {
     "source": {
-      "commit": "4c37e56e3fc26fd24f2c5c21e8090f27663c02eb",
+      "commit": "7e490c32a5a891009f97b8843bea6877b9de59db",
       "dirty": true,
-      "worktreeSha256": "6d9fcc498590e1c02eda4cc0e565b65583a78d53bc1cf5cb55a988f0ea7e3c70"
+      "worktreeSha256": "417995151301ea4fab6244819280ccabfa7d05d10c4d6f583dfbb72daf074da1"
     },
-    "buildId": "f421248b966f8271b34a4ea955c2b95dcdeea963cb349eba5476273a1e81ea6a",
+    "buildId": "6c9019530d0615c8ccce54a648b32a664c63f645a2c231d031c7339188dfb0a3",
     "artifactType": "extension",
-    "artifactSha256": "b022a66ae2b9f6c8416ea4a791595d773283b44beaa89e19e654c8337f6e43a3",
+    "artifactSha256": "020cce8a0eb68a973c98f06778b848705fa5d066b155e98df12f4bedc6aaa8e0",
     "browser": "chromium",
     "version": "149.0.7827.0",
     "installedExtension": true,
@@ -27,6 +27,9 @@
       "nested scrolling",
       "same- and cross-origin frame focus and scrolling",
       "early page capture handlers",
+      "prefix menus, counts and sticky view",
+      "command palette filtering, physical modifiers, navigation and dismissal",
+      "accessible menu and palette mouse actions",
       "background-tab hints exclude unsupported protocols",
       "tab picker",
       "closed-shadow picker and loaded build fingerprints",
@@ -37,13 +40,13 @@
   },
   {
     "source": {
-      "commit": "4c37e56e3fc26fd24f2c5c21e8090f27663c02eb",
+      "commit": "7e490c32a5a891009f97b8843bea6877b9de59db",
       "dirty": true,
-      "worktreeSha256": "6d9fcc498590e1c02eda4cc0e565b65583a78d53bc1cf5cb55a988f0ea7e3c70"
+      "worktreeSha256": "417995151301ea4fab6244819280ccabfa7d05d10c4d6f583dfbb72daf074da1"
     },
-    "buildId": "f67d64043d925fdb5e84c02900fc8ec42bc766e13b4b5805c570097e862d48be",
+    "buildId": "9a0d36043f2ac8444c4fa0ef4b6f548128acc297e7ecc1a05c6c2cbf12537fc2",
     "artifactType": "extension",
-    "artifactSha256": "0044a05a81effb2a2f72ed581210e4b3ef600cfc11459077d1d9a5baa89990b7",
+    "artifactSha256": "6da8ee5f5041d15f1b8b595635b475771561b4af191fc8a1020e183dbf298cde",
     "browser": "firefox",
     "version": "151.0",
     "installedExtension": true,
@@ -63,6 +66,8 @@
       "nested scrolling",
       "same- and cross-origin frame focus and scrolling",
       "early page capture handlers",
+      "prefix menus, counts and sticky view",
+      "command palette filtering, physical modifiers, navigation and dismissal",
       "background-tab hints exclude unsupported protocols",
       "tab picker",
       "closed-shadow picker and loaded build fingerprints",
@@ -73,13 +78,13 @@
   },
   {
     "source": {
-      "commit": "4c37e56e3fc26fd24f2c5c21e8090f27663c02eb",
+      "commit": "7e490c32a5a891009f97b8843bea6877b9de59db",
       "dirty": true,
-      "worktreeSha256": "6d9fcc498590e1c02eda4cc0e565b65583a78d53bc1cf5cb55a988f0ea7e3c70"
+      "worktreeSha256": "417995151301ea4fab6244819280ccabfa7d05d10c4d6f583dfbb72daf074da1"
     },
-    "buildId": "f421248b966f8271b34a4ea955c2b95dcdeea963cb349eba5476273a1e81ea6a",
+    "buildId": "6c9019530d0615c8ccce54a648b32a664c63f645a2c231d031c7339188dfb0a3",
     "artifactType": "contentScriptOnly",
-    "artifactSha256": "a3d8dce6a54092e7f8c59f84d11c9c19b471c4dc3feb564662615ff9298a5603",
+    "artifactSha256": "0e3230a6253e63da02f3475caefd4bb7f4917c4563ca16cf6e4e2474a7f3832a",
     "browser": "webkit",
     "version": "26.5",
     "installedExtension": false,
@@ -98,7 +103,9 @@
       "selection mode",
       "nested scrolling",
       "same- and cross-origin frame focus and scrolling",
-      "early page capture handlers"
+      "early page capture handlers",
+      "prefix menus, counts and sticky view",
+      "command palette filtering, physical modifiers, navigation and dismissal"
     ]
   }
 ]

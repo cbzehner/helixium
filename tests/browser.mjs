@@ -137,6 +137,80 @@ async function exercise(page, buildId) {
   await page.keyboard.type('fsa');
   await eventually(() => page.locator('body').getAttribute('data-activated'), value => value === '9');
 }
+async function exerciseDiscovery(page) {
+  await page.goto(origin);
+  await page.keyboard.press('Space');
+  await page.locator('[data-helixium-menu="prefix"]').waitFor();
+  assert.equal(await page.evaluate(() => scrollY), 0, 'Space opens a menu without scrolling');
+  await page.screenshot({ path: `test-results/${page.context().browser().browserType().name()}-prefix.png` });
+  await page.keyboard.press('Escape');
+  assert.equal(await page.locator('[data-helixium]').count(), 0);
+  await page.keyboard.type('3zj');
+  await eventually(() => page.evaluate(() => scrollY), value => value === 180);
+  assert.equal(await page.locator('[data-helixium]').count(), 0, 'One-shot view menu closes');
+  await page.keyboard.type('Zk');
+  await eventually(() => page.evaluate(() => scrollY), value => value === 120);
+  await page.locator('[data-helixium-menu="prefix"]').waitFor();
+  await page.keyboard.type('j');
+  await eventually(() => page.evaluate(() => scrollY), value => value === 180);
+  await page.keyboard.press('Escape');
+  await page.keyboard.type('gq');
+  assert.equal(await page.locator('[data-helixium]').count(), 0, 'Invalid prefix clears its menu');
+  await page.keyboard.type('g');
+  await page.keyboard.press('ArrowUp');
+  await promptReady(page);
+  await page.keyboard.press('Escape');
+  await page.keyboard.type('g');
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+  await eventually(() => page.evaluate(() => scrollY), value => value > 2000);
+  await page.keyboard.type('gg');
+  await eventually(() => page.evaluate(() => scrollY), value => value === 0);
+  await page.keyboard.press('Space');
+  await page.keyboard.press('Shift+?');
+  await page.locator('[data-helixium-menu=picker]').waitFor();
+  await promptReady(page);
+  await page.keyboard.type('scroll');
+  await page.screenshot({ path: `test-results/${page.context().browser().browserType().name()}-commands.png` });
+  await page.keyboard.press('ArrowDown'); // Scroll left
+  await page.keyboard.press('ArrowDown'); // Scroll down
+  await page.keyboard.press('Enter');
+  await eventually(() => page.evaluate(() => scrollY), value => value === 60);
+  await page.keyboard.type(' ?');
+  await promptReady(page);
+  await page.keyboard.type('no such command');
+  await page.keyboard.press('Enter');
+  await promptReady(page);
+  assert.equal(await page.evaluate(() => scrollY), 60, 'No match does not execute a command');
+  await page.keyboard.press('Escape');
+  await page.keyboard.type(' ?');
+  await promptReady(page);
+  await page.keyboard.type('go to top');
+  await page.keyboard.press('Enter');
+  await eventually(() => page.evaluate(() => scrollY), value => value === 0);
+  if (page.context().browser().browserType().name() === 'chromium') {
+    // Browser accessibility can inspect closed-shadow controls without changing the extension.
+    const cdp = await page.context().newCDPSession(page);
+    try {
+      for (const [sequence, label, expectedScroll] of [['g', 'Go to bottom', value => value > 2000], [' ?', 'Go to top', value => value === 0]]) {
+        await page.keyboard.type(sequence);
+        if (sequence === ' ?') { await promptReady(page); await page.keyboard.type(label); }
+        const { nodes } = await cdp.send('Accessibility.getFullAXTree');
+        const button = nodes.find(node => node.role?.value === 'button' && node.name?.value.startsWith(label));
+        assert.ok(button, `${label} is accessible`);
+        const { model } = await cdp.send('DOM.getBoxModel', { backendNodeId: button.backendDOMNodeId });
+        await page.mouse.click((model.content[0] + model.content[4]) / 2, (model.content[1] + model.content[5]) / 2);
+        await eventually(() => page.evaluate(() => scrollY), expectedScroll);
+      }
+    } finally { await cdp.detach(); }
+  }
+  await page.keyboard.type('g');
+  await page.locator('#input').click();
+  await page.keyboard.type('hello world');
+  assert.equal(await page.locator('#input').inputValue(), 'hello world');
+  assert.equal(await page.locator('[data-helixium]').count(), 0, 'Clicking into a field dismisses prefix mode');
+}
 async function exerciseExtensionActions(page, context, buildId) {
   await page.goto(origin);
   await page.bringToFront();
@@ -210,10 +284,11 @@ try {
       const browserArtifact = engine === firefox ? 'firefox' : 'chrome';
       const expected = await artifact(browserArtifact);
       await exercise(page, expected.buildId);
+      await exerciseDiscovery(page);
       if (installed) await exerciseExtensionActions(page, context, expected.buildId);
       const digest = createHash('sha256');
       for (const file of (installed ? ['manifest.json', 'content.js', 'background.js'] : ['content.js'])) digest.update(await readFile(`dist/${browserArtifact}/${file}`));
-      results.push({ source: revision, buildId: expected.buildId, artifactType: installed ? 'extension' : 'contentScriptOnly', artifactSha256: digest.digest('hex'), browser: process.env.HELIXIUM_CHROME === '1' ? 'Chrome' : engine.name(), version: context.browser()?.version(), installedExtension: installed, result: 'passed', checks: ['scrolling and counts', 'Helix goto prefixes', 'input passthrough', 'insert mode', 'synthetic event rejection', 'link, button and multi-character hints', 'focus input and contenteditable hints', 'ARIA button hints', 'hidden/disabled/inert exclusion', 'search and repeat', 'selection mode', 'nested scrolling', 'same- and cross-origin frame focus and scrolling', 'early page capture handlers', ...(installed ? ['background-tab hints exclude unsupported protocols', 'tab picker', 'closed-shadow picker and loaded build fingerprints', 'counted tab wrapping and closing', 'URL scheme validation', 'clipboard yank'] : [])] });
+      results.push({ source: revision, buildId: expected.buildId, artifactType: installed ? 'extension' : 'contentScriptOnly', artifactSha256: digest.digest('hex'), browser: process.env.HELIXIUM_CHROME === '1' ? 'Chrome' : engine.name(), version: context.browser()?.version(), installedExtension: installed, result: 'passed', checks: ['scrolling and counts', 'Helix goto prefixes', 'input passthrough', 'insert mode', 'synthetic event rejection', 'link, button and multi-character hints', 'focus input and contenteditable hints', 'ARIA button hints', 'hidden/disabled/inert exclusion', 'search and repeat', 'selection mode', 'nested scrolling', 'same- and cross-origin frame focus and scrolling', 'early page capture handlers', 'prefix menus, counts and sticky view', 'command palette filtering, physical modifiers, navigation and dismissal', ...(engine === chromium ? ['accessible menu and palette mouse actions'] : []), ...(installed ? ['background-tab hints exclude unsupported protocols', 'tab picker', 'closed-shadow picker and loaded build fingerprints', 'counted tab wrapping and closing', 'URL scheme validation', 'clipboard yank'] : [])] });
     } catch (error) {
       results.push({ browser: process.env.HELIXIUM_CHROME === '1' ? 'Chrome' : engine.name(), result: 'failed', error: error.stack });
       process.exitCode = 1;

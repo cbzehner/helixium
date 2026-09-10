@@ -1,6 +1,7 @@
 const api = globalThis.browser ?? globalThis.chrome;
 let state = initialState;
 let overlay;
+let prefixButtons;
 let hints = [];
 let hintPrefix = '';
 let hintNewTab = false;
@@ -9,35 +10,24 @@ let searchPattern = '';
 let searchDirection = 1;
 let lastPointerTarget;
 
-const help = `Helixium
-h j k l — scroll · count before motion repeats
-Ctrl-d/u — half page · Ctrl-f/b — page
-g g/e — top/end · g h/l — left/right edge
-g n/p — next/previous tab · Ctrl-o/i — history
-f/F — link hints/current or new background tab
-i — pass keys to page · Escape — normal mode
-v then h/j/k/l/w/b — extend text selection · y — copy
-/ or ? — text search forward/backward · n/N — repeat
-Space b — tab picker · Space f — open URL
-Space c — close tab · Space ? — this help
-z — one view motion · Z — sticky view mode`;
-
 function closeOverlay() {
   overlay?.remove();
   overlay = undefined;
+  prefixButtons = undefined;
   hints = [];
   hintPrefix = '';
 }
-function panel() {
+function panel(kind) {
   closeOverlay();
   overlay = document.createElement('div');
   overlay.setAttribute('data-helixium', '');
+  if (kind) overlay.dataset.helixiumMenu = kind;
   overlay.dataset.helixiumBuild = buildId;
   if (backgroundBuild) overlay.dataset.helixiumBackgroundBuild = backgroundBuild;
   overlay.style.cssText = 'all:initial;position:fixed;inset:0;z-index:2147483647;pointer-events:none';
   const shadow = overlay.attachShadow({ mode: 'closed' });
   const style = document.createElement('style');
-  style.textContent = ':host{color-scheme:dark} .panel{pointer-events:auto;position:fixed;bottom:20px;right:20px;max-width:min(600px,90vw);max-height:70vh;overflow:auto;background:#16202b;color:#f3f5f7;border:1px solid #84d7b5;border-radius:6px;padding:14px;font:14px/1.6 ui-monospace,monospace;white-space:pre-wrap;box-shadow:0 4px 18px #0006} input{box-sizing:border-box;width:100%;padding:8px;background:#fff;color:#111;font:16px sans-serif} button{display:block;width:100%;text-align:left;color:inherit;background:transparent;border:0;padding:6px;cursor:pointer} button:focus{outline:2px solid #84d7b5}.hint{position:fixed;background:#ffdd66;color:#111;font:bold 13px monospace;padding:2px 4px;border:1px solid #111;border-radius:3px}';
+  style.textContent = ':host{color-scheme:dark} .panel{pointer-events:auto;position:fixed;bottom:20px;right:20px;max-width:min(600px,90vw);max-height:70vh;overflow:auto;background:#16202b;color:#f3f5f7;border:1px solid #84d7b5;border-radius:6px;padding:14px;font:14px/1.6 ui-monospace,monospace;white-space:pre-wrap;box-shadow:0 4px 18px #0006} input{box-sizing:border-box;width:100%;padding:8px;background:#fff;color:#111;font:16px sans-serif} button{display:block;width:100%;text-align:left;color:inherit;background:transparent;border:0;padding:6px;cursor:pointer} button:focus{outline:2px solid #84d7b5} .menu{min-width:min(320px,80vw);white-space:normal} .menu button{display:flex;gap:20px;justify-content:space-between;font:inherit} kbd{color:#84d7b5;white-space:nowrap} .picker{display:flex;flex-direction:column;gap:8px}.choices{overflow:auto;min-height:0;overscroll-behavior:contain}.picker input,.picker .footer{flex-shrink:0}.caption{margin:0 0 8px;font-weight:bold} .footer{font-size:12px;opacity:.75;margin:8px 0 0}.hint{position:fixed;background:#ffdd66;color:#111;font:bold 13px monospace;padding:2px 4px;border:1px solid #111;border-radius:3px}';
   shadow.append(style);
   document.documentElement.append(overlay);
   return shadow;
@@ -49,6 +39,52 @@ function message(text) {
   box.setAttribute('role', 'status');
   box.textContent = text;
   root.append(box);
+}
+function navigateChoices(event, input, list) {
+  if (!['ArrowDown', 'ArrowUp'].includes(event.key)) return;
+  const buttons = [...list.querySelectorAll('button')];
+  if (!buttons.length) return;
+  event.preventDefault();
+  const current = buttons.indexOf(event.target);
+  const next = current < 0 ? (event.key === 'ArrowDown' ? 0 : buttons.length - 1) :
+    current + (event.key === 'ArrowDown' ? 1 : -1);
+  if (next < 0 && input && current === 0) input.focus();
+  else buttons[(next + buttons.length) % buttons.length].focus();
+}
+function prefixMenu() {
+  const mode = state.mode;
+  const root = panel('prefix');
+  const box = document.createElement('div');
+  box.className = 'panel menu';
+  box.setAttribute('role', 'group');
+  box.setAttribute('aria-label', `${prefixLabels[mode]} commands`);
+  const title = document.createElement('p');
+  title.className = 'caption';
+  title.textContent = `${state.count}${prefixLabels[mode]}${mode === 'sticky-view' ? ' · sticky view' : ''}`;
+  box.append(title);
+  for (const { key, label } of menuEntries(mode)) {
+    const button = document.createElement('button');
+    const shortcut = document.createElement('kbd');
+    shortcut.textContent = key;
+    button.append(label, shortcut);
+    button.addEventListener('mousedown', event => event.preventDefault());
+    button.onclick = event => { if (event.isTrusted) applyKey(key).catch(error => message(error.message)); };
+    box.append(button);
+  }
+  const footer = document.createElement('p');
+  footer.className = 'footer';
+  footer.textContent = 'Type a key or click · Tab / ↑ ↓ to browse · Esc to dismiss';
+  box.append(footer);
+  box.addEventListener('keydown', event => navigateChoices(event, null, box));
+  root.append(box);
+  prefixButtons = box;
+}
+async function applyKey(key) {
+  const next = transition(state, key);
+  state = next.state;
+  if (overlay?.dataset.helixiumMenu === 'prefix') closeOverlay();
+  if (next.command) await execute(next.command, next.count);
+  if (prefixLabels[state.mode]) prefixMenu();
 }
 async function send(command, details = {}) {
   const result = await api.runtime.sendMessage({ command, ...details });
@@ -119,32 +155,53 @@ async function hintKey(key) {
     else { element.focus(); element.click(); }
   }
 }
-function prompt(label, onSubmit, choices = []) {
-  const root = panel();
+function prompt(label, onSubmit, choices) {
+  const root = panel(choices ? 'picker' : 'prompt');
   const box = document.createElement('div');
-  box.className = 'panel';
+  box.className = 'panel menu picker';
   const input = document.createElement('input');
   input.setAttribute('aria-label', label);
   input.placeholder = label;
+  box.setAttribute('role', 'dialog');
+  box.setAttribute('aria-label', label);
   const list = document.createElement('div');
+  list.className = 'choices';
+  let matches = [];
+  const submit = value => { closeOverlay(); Promise.resolve(onSubmit(value)).catch(error => message(error.message)); };
   function render() {
     list.replaceChildren();
-    for (const choice of choices.filter(item => item.label.toLowerCase().includes(input.value.toLowerCase()))) {
+    matches = (choices ?? []).filter(item => `${item.label} ${item.shortcut ?? ''} ${item.keywords ?? ''}`.toLowerCase().includes(input.value.toLowerCase()));
+    for (const choice of matches) {
       const button = document.createElement('button');
       button.textContent = choice.label;
-      button.onclick = () => { closeOverlay(); Promise.resolve(onSubmit(choice.value)).catch(error => message(error.message)); };
+      if (choice.shortcut) {
+        const shortcut = document.createElement('kbd');
+        shortcut.textContent = choice.shortcut;
+        button.append(shortcut);
+      }
+      button.addEventListener('mousedown', event => event.preventDefault());
+      button.onclick = event => { if (event.isTrusted) submit(choice.value); };
       list.append(button);
     }
+    if (choices && !list.childElementCount) list.textContent = 'No matching results';
   }
   input.addEventListener('input', render);
   input.addEventListener('keydown', event => {
+    if (!event.isTrusted) return;
     if (event.key === 'Enter') {
       event.preventDefault();
-      if (choices.length) list.querySelector('button')?.click();
-      else { const value = input.value; closeOverlay(); Promise.resolve(onSubmit(value)).catch(error => message(error.message)); }
-    } else if (event.key === 'ArrowDown') { event.preventDefault(); list.querySelector('button')?.focus(); }
+      if (choices) { if (matches.length) submit(matches[0].value); }
+      else submit(input.value);
+    }
+  });
+  box.addEventListener('keydown', event => {
+    if (event.isTrusted) navigateChoices(event, input, list);
   });
   box.append(input, list);
+  const footer = document.createElement('p');
+  footer.className = 'footer';
+  footer.textContent = choices ? '↑ ↓ to browse · Enter to run · Esc to dismiss' : 'Enter to submit · Esc to dismiss';
+  box.append(footer);
   root.append(box);
   render();
   input.focus();
@@ -186,7 +243,12 @@ async function execute(command, count) {
     case 'yank': await navigator.clipboard.writeText(getSelection()?.toString() || location.href); message('Copied'); break;
     case 'back': history.back(); break;
     case 'forward': history.forward(); break;
-    case 'help': message(help); break;
+    case 'commands':
+      prompt('Search commands', async keys => {
+        state = initialState;
+        for (const key of keys) await applyKey(key);
+      }, commandEntries().map(({ command, label, keys }) => ({ label, value: keys, shortcut: shortcutLabel(keys), keywords: command })));
+      break;
     case 'search': case 'search-backward':
       searchDirection = command === 'search' ? 1 : -1;
       prompt('Find text', text => { searchPattern = text; findText(searchDirection < 0); }); break;
@@ -208,12 +270,29 @@ async function execute(command, count) {
 window.addEventListener('message', event => {
   if (window !== parent && event.source === parent && event.data?.helixiumFocus === buildId) window.focus();
 });
-document.addEventListener('pointerdown', event => { lastPointerTarget = event.target; }, true);
+document.addEventListener('pointerdown', event => {
+  if (event.composedPath().includes(overlay)) return;
+  lastPointerTarget = event.target;
+  if (overlay?.dataset.helixiumMenu === 'prefix') { state = initialState; closeOverlay(); }
+}, true);
 window.addEventListener('scroll', () => { if (hints.length) closeOverlay(); }, true);
 window.addEventListener('resize', () => { if (hints.length) closeOverlay(); });
 document.addEventListener('keydown', event => {
-  if (!event.isTrusted || event.isComposing || event.key === 'Process' || event.altKey || event.metaKey) return;
-  if (event.key !== 'Escape' && (editable(event) || event.composedPath().includes(overlay))) { state = initialState; return; }
+  if (!event.isTrusted || event.isComposing || ['Process', 'Shift', 'Control', 'Alt', 'Meta', 'CapsLock'].includes(event.key) || event.altKey || event.metaKey) return;
+  const inOverlay = event.composedPath().includes(overlay);
+  const inPrefix = overlay?.dataset.helixiumMenu === 'prefix';
+  if (event.key !== 'Escape' && inOverlay) {
+    if (!inPrefix || ['Enter', ' ', 'Tab', 'ArrowDown', 'ArrowUp'].includes(event.key)) return;
+  } else if (event.key !== 'Escape' && editable(event)) {
+    if (inPrefix) closeOverlay();
+    state = initialState; return;
+  }
+  if (inPrefix && !inOverlay && ['Tab', 'ArrowDown', 'ArrowUp'].includes(event.key)) {
+    event.preventDefault(); event.stopImmediatePropagation();
+    const buttons = prefixButtons.querySelectorAll('button');
+    buttons[event.key === 'ArrowUp' || event.shiftKey ? buttons.length - 1 : 0]?.focus();
+    return;
+  }
   const key = event.ctrlKey ? `Ctrl-${event.key.toLowerCase()}` : event.key;
   if (hints.length && key !== 'Escape') {
     event.preventDefault(); event.stopImmediatePropagation();
@@ -221,9 +300,8 @@ document.addEventListener('keydown', event => {
     return;
   }
   const next = transition(state, key);
-  state = next.state;
-  if (!next.consume) return;
+  if (!next.consume) { state = next.state; return; }
   event.preventDefault();
   event.stopImmediatePropagation();
-  if (next.command) execute(next.command, next.count).catch(error => message(error.message));
+  applyKey(key).catch(error => message(error.message));
 }, true);

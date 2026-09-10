@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { initialState, transition, hintLabels } from '../src/keymap.js';
+import { initialState, transition, hintLabels, menuEntries, commandEntries } from '../src/keymap.js';
 const press = keys => keys.reduce((result, key) => transition(result.state, key), { state: initialState });
 test('Helix end-of-file uses ge and counts survive prefixes', () => {
   assert.equal(press(['g', 'e']).command, 'bottom');
@@ -52,4 +52,17 @@ test('all motion variants retain counts and mode semantics', () => {
 test('invalid hint label inputs are rejected', () => {
   for (const count of [-1, 1.5, Infinity, NaN]) assert.throws(() => hintLabels(count), /Invalid hint count/);
   for (const alphabet of ['', 'a', 'aa']) assert.throws(() => hintLabels(1, alphabet), /distinct characters/);
+});
+
+test('discovery entries describe executable bindings and preserve selection mode', () => {
+  for (const mode of ['normal', 'goto', 'space', 'view', 'sticky-view', 'select']) {
+    for (const entry of menuEntries(mode)) {
+      assert.ok(entry.label, `${mode} ${entry.key} needs a description`);
+      assert.equal(transition({ mode, count: '' }, entry.key).command, entry.command);
+    }
+  }
+  const entries = commandEntries();
+  assert.equal(new Set(entries.map(entry => press(entry.keys).command)).size, entries.length);
+  assert.deepEqual(entries.find(entry => entry.label === 'Extend selection by word').keys, ['v', 'w']);
+  assert.equal(press([' ', '?']).command, 'commands');
 });

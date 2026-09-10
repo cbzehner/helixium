@@ -1,13 +1,13 @@
 [
   {
     "source": {
-      "commit": "4c37e56e3fc26fd24f2c5c21e8090f27663c02eb",
+      "commit": "7e490c32a5a891009f97b8843bea6877b9de59db",
       "dirty": true,
-      "worktreeSha256": "6d9fcc498590e1c02eda4cc0e565b65583a78d53bc1cf5cb55a988f0ea7e3c70"
+      "worktreeSha256": "fb2e7e4fbf1436f63bf7e0d3ba982bf16abe6787694b5c9d6369ff6465e7f0ef"
     },
-    "buildId": "f421248b966f8271b34a4ea955c2b95dcdeea963cb349eba5476273a1e81ea6a",
+    "buildId": "6c9019530d0615c8ccce54a648b32a664c63f645a2c231d031c7339188dfb0a3",
     "artifactType": "extension",
-    "artifactSha256": "b022a66ae2b9f6c8416ea4a791595d773283b44beaa89e19e654c8337f6e43a3",
+    "artifactSha256": "020cce8a0eb68a973c98f06778b848705fa5d066b155e98df12f4bedc6aaa8e0",
     "browser": "Chrome",
     "version": "153.0.8010.37",
     "installedExtension": true,
@@ -27,6 +27,9 @@
       "nested scrolling",
       "same- and cross-origin frame focus and scrolling",
       "early page capture handlers",
+      "prefix menus, counts and sticky view",
+      "command palette filtering, physical modifiers, navigation and dismissal",
+      "accessible menu and palette mouse actions",
       "background-tab hints exclude unsupported protocols",
       "tab picker",
       "closed-shadow picker and loaded build fingerprints",

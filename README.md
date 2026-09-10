@@ -27,6 +27,10 @@ development builds, with no signed store package.
 
 ## Use
 
+Press `Space`, `g`, `z`, or `Z` to see the available next keys. Keep typing
+or click an option; Escape dismisses the menu. In `Space ?`, type to filter
+commands, use ↑ / ↓ to browse, and Enter to run the selected command.
+
 `h j k l` scroll; `g g` / `g e` go to the top / bottom. Counts repeat
 motions; `z` applies one view motion, `Z` stays in view mode. `v` extends
 selections; `y` copies the selection or page URL.
@@ -37,7 +41,7 @@ Copying requires a secure page (HTTPS or localhost), following the browser's
 `f` / `F` show hints for the current / a new background tab. Hints also
 focus controls and frames. `g n` / `g p` switch tabs; Space b filters tabs,
 Space f opens a URL, Space c closes a tab. `/` / `?` search forward /
-backward; `n` / `N` repeat. Space ? shows help.
+backward; `n` / `N` repeat. Space ? searches all commands.
 
 Adapted from [Helix's keymap](https://docs.helix-editor.com/keymap.html):
 link hints replace character finding; search is literal, not regex.

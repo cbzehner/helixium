@@ -1,11 +1,11 @@
 {
   "source": {
-    "commit": "4c37e56e3fc26fd24f2c5c21e8090f27663c02eb",
+    "commit": "7e490c32a5a891009f97b8843bea6877b9de59db",
     "dirty": true,
-    "worktreeSha256": "01eabd0f57e235c9f8899472a5d969b5a32a871c6468cd0c7ea16961ac7f3820"
+    "worktreeSha256": "0d953912a75f6dd74eb7a3692d3018b473ec6c8f5e26126cbb22ded7a60ca90d"
   },
-  "buildId": "c18b4c1a3a5678d3a9f30d8bd69a2bb0ce0562e9da0145cc4da3d24e5e571bfe",
-  "artifactSha256": "255a3c7ffd942d5f86e8d9bff3696da0328af92cf7eaf0e98ab70a353f8c65b0",
+  "buildId": "f4ee54c38ee732cc9aae292b2f1a9018bf7886da6bc9c1eb54ac856c74856b82",
+  "artifactSha256": "7ee5051c7d2b0ba3463c0a7b2bfec07db934a097a29b191f3f1db9ddb6c14545",
   "browser": "Safari",
   "installedExtension": true,
   "automation": "VNC keyboard/mouse; test-fixture DOM observation and setup",
@@ -22,7 +22,9 @@
     "tab cycling and closing",
     "URL scheme validation and clipboard yank",
     "early page capture handlers",
-    "multi-character hints"
+    "multi-character hints",
+    "prefix menus, counts, keyboard choice and sticky view",
+    "command palette filtering, physical modifiers, navigation and dismissal"
   ],
   "result": "passed",
   "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6.2 Safari/605.1.15",
