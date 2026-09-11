@@ -117,6 +117,8 @@ def main():
     elif args.action == "export":
         export(args.name)
     elif args.action == "remove":
+        if not state.exists():
+            parser.error("refusing removal without this project's sandbox state")
         configuration = json.loads(state.read_text())
         existing = json.loads(output(SBX, "ls", "--json"))["sandboxes"]
         if any(sandbox["name"] == args.name for sandbox in existing):

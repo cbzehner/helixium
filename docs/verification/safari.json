@@ -1,11 +1,11 @@
 {
   "source": {
-    "commit": "7e490c32a5a891009f97b8843bea6877b9de59db",
+    "commit": "bc8ac5e424f624ccbacdb4da3be474984807e65a",
     "dirty": true,
-    "worktreeSha256": "0d953912a75f6dd74eb7a3692d3018b473ec6c8f5e26126cbb22ded7a60ca90d"
+    "worktreeSha256": "f0fe6ad31a3ccb95db237feba1f7eeccdb66dd8e957b5073ab51d82467a6e632"
   },
-  "buildId": "f4ee54c38ee732cc9aae292b2f1a9018bf7886da6bc9c1eb54ac856c74856b82",
-  "artifactSha256": "7ee5051c7d2b0ba3463c0a7b2bfec07db934a097a29b191f3f1db9ddb6c14545",
+  "buildId": "f2d1cb27b4a61a00d3664f8526cd14ca257344a6cea21d9c92abbbb0306799df",
+  "artifactSha256": "d248fff719c488778874a65e7a18a44f05d990d425a88950c7819fd17964306f",
   "browser": "Safari",
   "installedExtension": true,
   "automation": "VNC keyboard/mouse; test-fixture DOM observation and setup",
@@ -24,7 +24,12 @@
     "early page capture handlers",
     "multi-character hints",
     "prefix menus, counts, keyboard choice and sticky view",
-    "command palette filtering, physical modifiers, navigation and dismissal"
+    "command palette filtering, physical modifiers, navigation and dismissal",
+    "idle Escape, native dialog dismissal and unbound Ctrl shortcuts",
+    "status click passthrough",
+    "checkbox hint navigation",
+    "SVG hints and malformed links",
+    "body scroll container"
   ],
   "result": "passed",
   "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6.2 Safari/605.1.15",

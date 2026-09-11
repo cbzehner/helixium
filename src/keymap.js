@@ -45,7 +45,7 @@ export const initialState = Object.freeze({ mode: 'normal', count: '' });
 
 export function transition(state, key) {
   if (key === 'Escape') return { state: initialState, command: 'escape', count: 1, consume: true };
-  if (state.mode === 'insert') return { state, consume: false };
+  if (state.mode === 'insert' || (key.startsWith('Ctrl-') && !bindings[state.mode]?.[key])) return { state, consume: false };
   if (/^[0-9]$/.test(key) && (key !== '0' || state.count)) {
     return { state: { ...state, count: (state.count + key).slice(0, 4) }, consume: true };
   }

@@ -1,13 +1,13 @@
 [
   {
     "source": {
-      "commit": "7e490c32a5a891009f97b8843bea6877b9de59db",
+      "commit": "bc8ac5e424f624ccbacdb4da3be474984807e65a",
       "dirty": true,
-      "worktreeSha256": "fb2e7e4fbf1436f63bf7e0d3ba982bf16abe6787694b5c9d6369ff6465e7f0ef"
+      "worktreeSha256": "f0fe6ad31a3ccb95db237feba1f7eeccdb66dd8e957b5073ab51d82467a6e632"
     },
-    "buildId": "6c9019530d0615c8ccce54a648b32a664c63f645a2c231d031c7339188dfb0a3",
+    "buildId": "4be1a0650fbf482a6a9b3e9b63d98db793f70d9af1ae242c98313a6d4ed0e49d",
     "artifactType": "extension",
-    "artifactSha256": "020cce8a0eb68a973c98f06778b848705fa5d066b155e98df12f4bedc6aaa8e0",
+    "artifactSha256": "885b4327a3c7a26890a73b4e439a0b5adad24e5bcb78f359689ca4ff025c31fa",
     "browser": "Chrome",
     "version": "153.0.8010.37",
     "installedExtension": true,
@@ -29,12 +29,18 @@
       "early page capture handlers",
       "prefix menus, counts and sticky view",
       "command palette filtering, physical modifiers, navigation and dismissal",
+      "idle Escape and native dialog dismissal",
+      "unbound Ctrl shortcuts",
+      "status click passthrough",
+      "checkbox hint navigation",
+      "SVG hints and malformed links",
+      "body scroll container",
       "accessible menu and palette mouse actions",
       "background-tab hints exclude unsupported protocols",
       "tab picker",
       "closed-shadow picker and loaded build fingerprints",
       "counted tab wrapping and closing",
-      "URL scheme validation",
+      "URL scheme validation and successful URL opening",
       "clipboard yank"
     ]
   }

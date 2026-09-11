@@ -128,27 +128,31 @@ restart, loopback ports, lack of host mounts and forwarded SSH agent,
 export of commits/deletions/new files, patch application to the recorded
 base, preservation of the guest index, and removal.
 
-Verified on September 9, 2026:
+Verified on September 10, 2026:
 
 | Browser | Version | Verification | Result |
 | --- | --- | --- | --- |
-| Chrome (macOS) | 153.0.8010.37 | Installed extension, 23 checks | [Passed](verification/chrome.json) |
-| Firefox (Linux) | 151.0 | Installed extension, 22 checks | [Passed](verification/linux.json) |
-| Safari (macOS) | 26.6.2 | Installed temporary extension, 15 grouped checks | [Passed](verification/safari.json) |
-| Chromium (Linux) | 149.0.7827.0 | Installed extension, 23 checks | [Passed](verification/linux.json) |
-| WebKit (Linux) | 26.5 | Content script only, 16 checks | [Passed](verification/linux.json) |
+| Chrome (macOS) | 153.0.8010.37 | Installed extension, 29 checks | [Passed](verification/chrome.json) |
+| Firefox (Linux) | 151.0 | Installed extension, 28 checks | [Passed](verification/linux.json) |
+| Safari (macOS) | 26.6.2 | Installed temporary extension, 20 grouped checks | [Passed](verification/safari.json) |
+| Chromium (Linux) | 149.0.7827.0 | Installed extension, 29 checks | [Passed](verification/linux.json) |
+| WebKit (Linux) | 26.5 | Content script only, 22 checks | [Passed](verification/linux.json) |
 
 The suites cover counts and scrolling, Helix prefixes, editable controls,
 insert mode, synthetic-event rejection, link and control hints (including
 multi-character labels), same- and cross-origin frames, early page handlers,
 search, selection, and nested scrolling. Installed-extension suites also
 exercise background tabs, the closed-shadow tab picker, tab cycling/closing,
-URL validation, and clipboard copying. The check command also runs 13
+URL validation, and clipboard copying. The check command also runs 15
 JavaScript tests for keymaps, background actions, builds, and VNC, plus six
 Python tests for workspace copying and lifecycle recovery. Discovery checks
 cover prefix menus, counted and sticky motions, physical modifier keys,
-palette filtering, keyboard navigation, empty results, and dismissal. Chrome and Chromium also verify
-mouse activation using browser accessibility to locate closed-shadow controls.
+palette filtering, keyboard navigation, empty results, and dismissal.
+Chrome and Chromium also verify mouse activation using browser accessibility to locate closed-shadow controls.
+Page coexistence checks cover idle Escape and native dialog dismissal,
+unbound Ctrl shortcuts, status click-through, checkbox navigation, SVG and
+malformed links, and body scroll containers after page content is replaced.
+Chrome, Chromium, and Firefox also verify successful URL opening.
 Screenshots: [prefix menu](verification/prefix-menu.png) and
 [command palette](verification/command-palette.png).
 This is fixture-based development verification, not an exhaustive audit of

@@ -211,10 +211,76 @@ async function exerciseDiscovery(page) {
   assert.equal(await page.locator('#input').inputValue(), 'hello world');
   assert.equal(await page.locator('[data-helixium]').count(), 0, 'Clicking into a field dismisses prefix mode');
 }
+async function exercisePageCoexistence(page) {
+  await page.goto(origin);
+  await page.evaluate(() => {
+    window.escapeKeys = 0;
+    window.ctrlKeys = 0;
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape') window.escapeKeys++;
+      if (event.ctrlKey && event.key === 'c') { window.ctrlKeys++; event.preventDefault(); }
+    });
+  });
+  await page.keyboard.press('Escape');
+  assert.equal(await page.evaluate(() => window.escapeKeys), 1);
+  await page.keyboard.press('Space');
+  await page.keyboard.press('Escape');
+  assert.equal(await page.evaluate(() => window.escapeKeys), 1, 'An open menu still owns Escape');
+  for (const prefix of ['v', 'Z', 'g']) {
+    await page.keyboard.type(prefix);
+    await page.keyboard.press('Control+c');
+    await page.keyboard.press('Escape');
+  }
+  assert.equal(await page.evaluate(() => window.ctrlKeys), 3);
+  await page.evaluate(() => {
+    document.body.insertAdjacentHTML('afterbegin', '<dialog id="dialog"><button>Close</button></dialog>');
+    document.getElementById('dialog').showModal();
+  });
+  await page.keyboard.press('Escape');
+  await eventually(() => page.locator('#dialog').evaluate(element => element.open), value => !value);
+  await page.evaluate(() => {
+    const button = document.createElement('button');
+    button.id = 'corner';
+    button.textContent = 'Corner action';
+    button.style.cssText = 'position:fixed;bottom:20px;right:20px;width:350px;height:40px';
+    button.onclick = () => { document.body.dataset.corner = 'clicked'; };
+    document.body.append(button);
+  });
+  await page.keyboard.type('i');
+  await page.locator('#corner').click({ position: { x: 300, y: 20 } });
+  assert.equal(await page.locator('body').getAttribute('data-corner'), 'clicked');
+  await page.keyboard.press('Escape');
+  await page.evaluate(() => {
+    document.body.innerHTML = '<input type="checkbox" id="check"><div style="height:3000px">Long page</div>';
+  });
+  await page.keyboard.type('fa');
+  assert.equal(await page.locator('#check').isChecked(), true);
+  await page.keyboard.press('j');
+  await eventually(() => page.evaluate(() => scrollY), value => value === 60);
+  await page.goto(origin);
+  await page.evaluate(() => {
+    document.body.innerHTML = '<a href="http://[invalid">Invalid</a><svg width="200" height="80"><a href="/destination"><rect width="200" height="80" fill="green"/></a></svg>';
+  });
+  await page.keyboard.type('fa');
+  await page.waitForURL('**/destination');
+  await page.goto(origin);
+  await page.locator('h1').click();
+  await page.evaluate(() => {
+    document.documentElement.style.cssText = 'height:100%;overflow:hidden';
+    document.body.style.cssText = 'height:100%;overflow:auto;margin:0';
+    document.body.innerHTML = '<div style="height:3000px">Body scroll container</div>';
+  });
+  await page.keyboard.press('j');
+  await eventually(() => page.evaluate(() => document.body.scrollTop), value => value === 60);
+}
 async function exerciseExtensionActions(page, context, buildId) {
   await page.goto(origin);
   await page.bringToFront();
-  await page.evaluate(() => document.body.insertAdjacentHTML('afterbegin', '<a href="mailto:test@example.com">Mail</a><a href="javascript:void(0)">Script</a>'));
+  await page.evaluate(() => document.body.insertAdjacentHTML('afterbegin', '<a href="http://[invalid">Invalid</a><a href="mailto:test@example.com">Mail</a><a href="javascript:void(0)">Script</a>'));
+  await page.evaluate(() => {
+    const link = document.getElementById('link');
+    link.outerHTML = '<svg width="140" height="30"><a href="/destination"><rect width="140" height="30" fill="green"/></a></svg>';
+  });
   await page.keyboard.type('F');
   await page.locator('[data-helixium]').waitFor();
   const created = context.waitForEvent('page');
@@ -249,6 +315,16 @@ async function exerciseExtensionActions(page, context, buildId) {
   await page.locator('[data-helixium]').waitFor();
   assert.equal(context.pages().length, before);
   await page.keyboard.press('Escape');
+  await page.keyboard.type(' f');
+  await promptReady(page);
+  const opening = context.waitForEvent('page');
+  await page.keyboard.type(origin + '/destination?opened');
+  await page.keyboard.press('Enter');
+  const opened = await opening;
+  await opened.waitForURL('**/destination?opened');
+  await eventually(() => opened.evaluate(() => document.visibilityState), value => value === 'visible');
+  await opened.close();
+  await page.bringToFront();
   await page.evaluate(() => {
     const text = document.getElementById('words').firstChild;
     getSelection().setBaseAndExtent(text, 0, text, 5);
@@ -268,7 +344,7 @@ try {
       const installed = engine !== webkit;
       context = await engine.launchPersistentContext(profile, {
         headless: false,
-        ...(engine === firefox && { args: ['--remote-debugging-port=9223'] }),
+        ...(engine === firefox && { args: ['--remote-debugging-port=0'] }),
         ...(engine === chromium && process.env.HELIXIUM_CHROME === '1' && { channel: 'chrome', ignoreDefaultArgs: ['--disable-extensions'] }),
         ...(engine === chromium && { chromiumSandbox: true, args: process.env.HELIXIUM_CHROME === '1' ? ['--enable-unsafe-extension-debugging'] : [`--disable-extensions-except=${resolve('dist/chrome')}`, `--load-extension=${resolve('dist/chrome')}`] }),
       });
@@ -278,17 +354,21 @@ try {
         assert.ok(id);
         await cdp.detach();
       }
-      if (engine === firefox) await installFirefoxExtension(9223);
+      if (engine === firefox) {
+        const { ws_port: port } = JSON.parse(await readFile(join(profile, 'WebDriverBiDiServer.json'), 'utf8'));
+        await installFirefoxExtension(port);
+      }
       if (!installed) await context.addInitScript({ path: 'dist/chrome/content.js' });
       const page = await context.newPage();
       const browserArtifact = engine === firefox ? 'firefox' : 'chrome';
       const expected = await artifact(browserArtifact);
       await exercise(page, expected.buildId);
       await exerciseDiscovery(page);
+      await exercisePageCoexistence(page);
       if (installed) await exerciseExtensionActions(page, context, expected.buildId);
       const digest = createHash('sha256');
       for (const file of (installed ? ['manifest.json', 'content.js', 'background.js'] : ['content.js'])) digest.update(await readFile(`dist/${browserArtifact}/${file}`));
-      results.push({ source: revision, buildId: expected.buildId, artifactType: installed ? 'extension' : 'contentScriptOnly', artifactSha256: digest.digest('hex'), browser: process.env.HELIXIUM_CHROME === '1' ? 'Chrome' : engine.name(), version: context.browser()?.version(), installedExtension: installed, result: 'passed', checks: ['scrolling and counts', 'Helix goto prefixes', 'input passthrough', 'insert mode', 'synthetic event rejection', 'link, button and multi-character hints', 'focus input and contenteditable hints', 'ARIA button hints', 'hidden/disabled/inert exclusion', 'search and repeat', 'selection mode', 'nested scrolling', 'same- and cross-origin frame focus and scrolling', 'early page capture handlers', 'prefix menus, counts and sticky view', 'command palette filtering, physical modifiers, navigation and dismissal', ...(engine === chromium ? ['accessible menu and palette mouse actions'] : []), ...(installed ? ['background-tab hints exclude unsupported protocols', 'tab picker', 'closed-shadow picker and loaded build fingerprints', 'counted tab wrapping and closing', 'URL scheme validation', 'clipboard yank'] : [])] });
+      results.push({ source: revision, buildId: expected.buildId, artifactType: installed ? 'extension' : 'contentScriptOnly', artifactSha256: digest.digest('hex'), browser: process.env.HELIXIUM_CHROME === '1' ? 'Chrome' : engine.name(), version: context.browser()?.version(), installedExtension: installed, result: 'passed', checks: ['scrolling and counts', 'Helix goto prefixes', 'input passthrough', 'insert mode', 'synthetic event rejection', 'link, button and multi-character hints', 'focus input and contenteditable hints', 'ARIA button hints', 'hidden/disabled/inert exclusion', 'search and repeat', 'selection mode', 'nested scrolling', 'same- and cross-origin frame focus and scrolling', 'early page capture handlers', 'prefix menus, counts and sticky view', 'command palette filtering, physical modifiers, navigation and dismissal', 'idle Escape and native dialog dismissal', 'unbound Ctrl shortcuts', 'status click passthrough', 'checkbox hint navigation', 'SVG hints and malformed links', 'body scroll container', ...(engine === chromium ? ['accessible menu and palette mouse actions'] : []), ...(installed ? ['background-tab hints exclude unsupported protocols', 'tab picker', 'closed-shadow picker and loaded build fingerprints', 'counted tab wrapping and closing', 'URL scheme validation and successful URL opening', 'clipboard yank'] : [])] });
     } catch (error) {
       results.push({ browser: process.env.HELIXIUM_CHROME === '1' ? 'Chrome' : engine.name(), result: 'failed', error: error.stack });
       process.exitCode = 1;

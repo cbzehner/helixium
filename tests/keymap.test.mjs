@@ -66,3 +66,12 @@ test('discovery entries describe executable bindings and preserve selection mode
   assert.deepEqual(entries.find(entry => entry.label === 'Extend selection by word').keys, ['v', 'w']);
   assert.equal(press([' ', '?']).command, 'commands');
 });
+
+test('unbound Ctrl shortcuts preserve modes and counts without consuming the key', () => {
+  for (const mode of ['normal', 'goto', 'space', 'view', 'sticky-view', 'select']) {
+    const state = { mode, count: '3' };
+    assert.deepEqual(transition(state, 'Ctrl-c'), { state, consume: false });
+  }
+  assert.equal(press(['0']).consume, false);
+  assert.equal(press(['9', '9', '9', '9', '9', 'j']).count, 9999);
+});

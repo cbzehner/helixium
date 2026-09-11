@@ -26,8 +26,10 @@ if [[ ! -f "$browser_trust_store/cert9.db" ]]; then
   certutil -N -d "sql:$browser_trust_store" --empty-password
 fi
 certutil -D -d "sql:$browser_trust_store" -n helixium-sandbox-proxy 2>/dev/null || true
-certutil -A -d "sql:$browser_trust_store" -n helixium-sandbox-proxy -t 'C,,' \
-  -i /usr/local/share/ca-certificates/proxy-ca.crt
+if [[ -f /usr/local/share/ca-certificates/proxy-ca.crt ]]; then
+  certutil -A -d "sql:$browser_trust_store" -n helixium-sandbox-proxy -t 'C,,' \
+    -i /usr/local/share/ca-certificates/proxy-ca.crt
+fi
 cd /home/agent/workspace
 /home/agent/.local/lib/helixium-sandbox/node-package/bin/node \
   /home/agent/.local/lib/helixium-sandbox/browser.cjs \

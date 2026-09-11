@@ -157,7 +157,8 @@ try {
   await navigate(origin + '/');
   const first = page;
   const before = new Set(server.pages.keys());
-  await evaluate(`document.body.insertAdjacentHTML('afterbegin', '<a href="mailto:test@example.com">Mail</a><a href="javascript:void(0)">Script</a>')`);
+  await evaluate(`document.body.insertAdjacentHTML('afterbegin', '<a href="http://[invalid">Invalid</a><a href="mailto:test@example.com">Mail</a><a href="javascript:void(0)">Script</a>')`);
+  await evaluate(`document.getElementById('link').outerHTML = '<svg width="140" height="30"><a href="/destination"><rect width="140" height="30" fill="green"/></a></svg>'`);
   await keys('Fa');
   const second = (await eventually(() => [...server.pages], pages => pages.some(([id, state]) => !before.has(id) && state.top && state.url.endsWith('/destination')))).find(([id, state]) => !before.has(id) && state.top && state.url.endsWith('/destination'))[0];
   assert.equal(await evaluate('document.visibilityState'), 'visible');
@@ -247,6 +248,45 @@ try {
   await keys('go to top\n');
   await eventually(() => evaluate('scrollY'), value => value === 0);
   result.checks.push('command palette filtering, physical modifiers, navigation and dismissal');
+  await navigate(origin + '/');
+  await evaluate(`window.escapeKeys = 0; window.ctrlKeys = 0;
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape') window.escapeKeys++;
+      if (event.ctrlKey && event.key === 'c') { window.ctrlKeys++; event.preventDefault(); }
+    });`);
+  await escape();
+  assert.equal(await evaluate('window.escapeKeys'), 1);
+  await keys(' '); await escape();
+  assert.equal(await evaluate('window.escapeKeys'), 1);
+  for (const prefix of ['v', 'Z', 'g']) {
+    await keys(prefix); await shortcut('ctrl-c'); await escape();
+  }
+  assert.equal(await evaluate('window.ctrlKeys'), 3);
+  await evaluate(`document.body.insertAdjacentHTML('afterbegin', '<dialog id="dialog"><button>Close</button></dialog>'); document.getElementById('dialog').showModal()`);
+  await escape();
+  await eventually(() => evaluate("document.getElementById('dialog').open"), value => !value);
+  result.checks.push('idle Escape, native dialog dismissal and unbound Ctrl shortcuts');
+  await evaluate(`document.body.insertAdjacentHTML('beforeend', '<button id="corner" style="position:fixed;bottom:20px;right:20px;width:350px;height:40px" onclick="document.body.dataset.corner=1">Corner action</button>')`);
+  await keys('i'); await click('#corner');
+  assert.equal(await evaluate('document.body.dataset.corner'), '1');
+  await escape();
+  result.checks.push('status click passthrough');
+  await evaluate(`document.body.innerHTML = '<input type="checkbox" id="check"><div style="height:3000px">Long page</div>'`);
+  await keys('fa');
+  assert.equal(await evaluate("document.getElementById('check').checked"), true);
+  await keys('j');
+  await eventually(() => evaluate('scrollY'), value => value === 60);
+  result.checks.push('checkbox hint navigation');
+  await navigate(origin + '/');
+  await evaluate(`document.body.innerHTML = '<a href="http://[invalid">Invalid</a><svg width="200" height="80"><a href="/destination"><rect width="200" height="80" fill="green"/></a></svg>'`);
+  await keys('fa');
+  page = (await eventually(() => [...server.pages], pages => pages.some(([id, state]) => id !== page && state.top && state.visible && state.url.endsWith('/destination') && Date.now() - state.seen < 500))).find(([id, state]) => id !== page && state.top && state.visible && state.url.endsWith('/destination') && Date.now() - state.seen < 500)[0];
+  result.checks.push('SVG hints and malformed links');
+  await navigate(origin + '/');
+  await evaluate(`document.documentElement.style.cssText = 'height:100%;overflow:hidden'; document.body.style.cssText = 'height:100%;overflow:auto;margin:0'; document.body.innerHTML = '<div style="height:3000px">Body scroll container</div>'`);
+  await keys('j');
+  await eventually(() => evaluate('document.body.scrollTop'), value => value === 60);
+  result.checks.push('body scroll container');
   await vnc('screenshot', { path: 'test-results/safari.png' });
   result.result = 'passed';
 } catch (error) {

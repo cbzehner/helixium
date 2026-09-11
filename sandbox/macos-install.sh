@@ -3,6 +3,7 @@ set -euo pipefail
 # Executed only in the disposable macOS guest, as its admin user.
 if [[ ! -x /nix/var/nix/profiles/default/bin/nix ]]; then
   curl -fsSL https://releases.nixos.org/nix/nix-2.34.7/install -o /tmp/install-nix
+  echo "e9d447ce3d2ff62d7ff9cb6ef401de6fa8acb148839dd00f7271945d7b638b14  /tmp/install-nix" | shasum -a 256 -c -
   sh /tmp/install-nix --daemon --yes
 fi
 sudo tee /etc/nix/nix.conf >/dev/null <<'NIX'

@@ -8,7 +8,8 @@ import { build, verifyBuild } from '../scripts/build.mjs';
 test('build replaces stale output and verification rejects changed or extra files', async () => {
   const output = await mkdtemp(join(tmpdir(), 'helixium-build-'));
   try {
-    await build(output);
+    const previous = process.cwd();
+    try { process.chdir(output); await build(output); } finally { process.chdir(previous); }
     const original = await verifyBuild('safari', output);
     await writeFile(`${output}/safari/content.js`, 'stale extension');
     await assert.rejects(verifyBuild('safari', output), /Stale safari build/);

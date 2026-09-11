@@ -37,6 +37,7 @@ function message(text) {
   const box = document.createElement('div');
   box.className = 'panel';
   box.setAttribute('role', 'status');
+  box.style.pointerEvents = 'none';
   box.textContent = text;
   root.append(box);
 }
@@ -98,22 +99,27 @@ function editable(event) {
   // focused custom elements rather than intercepting text we cannot inspect.
   if (document.activeElement?.localName.includes('-')) return true;
   return event.composedPath().some(element => element instanceof Element &&
-    (element.matches('input,textarea,select,[role="textbox"],[role="combobox"]') || element.isContentEditable));
+    (element.matches('textarea,select,[role="textbox"],[role="combobox"]') || element.isContentEditable ||
+      (element instanceof HTMLInputElement && !['button', 'submit', 'reset', 'checkbox', 'radio', 'image', 'file', 'range', 'color', 'hidden'].includes(element.type))));
 }
 function scrollTarget() {
-  for (let element = lastPointerTarget instanceof Element ? lastPointerTarget : document.activeElement;
-    element && element !== document.body; element = element.parentElement) {
+  for (let element = lastPointerTarget instanceof Element && lastPointerTarget.isConnected ? lastPointerTarget : document.activeElement;
+    element; element = element.parentElement) {
     const style = getComputedStyle(element);
     if (/(auto|scroll)/.test(style.overflowY + style.overflowX) &&
       (element.scrollHeight > element.clientHeight || element.scrollWidth > element.clientWidth)) return element;
   }
   return document.scrollingElement;
 }
+function linkURL(element) {
+  if (!element.matches('a[href]')) return null;
+  try { return new URL(element.getAttribute('href'), element.baseURI); } catch { return null; }
+}
 function showHints(newTab) {
   const interactiveSelector = 'iframe,a[href],button,input:not([type="hidden"]),textarea,select,[role="button"],[role="link"],[contenteditable]:not([contenteditable="false"])';
   const elements = [...document.querySelectorAll(`${interactiveSelector},[tabindex]`)]
     .filter(element => {
-      if (element.matches(':disabled,[aria-disabled="true"]') || element.closest('[inert]') || (!element.matches(interactiveSelector) && element.tabIndex < 0) || (newTab && (!element.matches('a[href]') || !['http:', 'https:'].includes(new URL(element.href).protocol)))) return false;
+      if (element.matches(':disabled,[aria-disabled="true"]') || element.closest('[inert]') || (!element.matches(interactiveSelector) && element.tabIndex < 0) || (element.matches('a[href]') && !linkURL(element)) || (newTab && !['http:', 'https:'].includes(linkURL(element)?.protocol))) return false;
       const box = element.getBoundingClientRect();
       if (!box.width || !box.height || box.bottom <= 0 || box.right <= 0 || box.top >= innerHeight || box.left >= innerWidth || getComputedStyle(element).visibility !== 'visible') return false;
       const hit = document.elementFromPoint(Math.max(0, Math.min(innerWidth - 1, box.left + box.width / 2)), Math.max(0, Math.min(innerHeight - 1, box.top + box.height / 2)));
@@ -147,12 +153,19 @@ async function hintKey(key) {
     const newTab = hintNewTab;
     closeOverlay();
     if (!element.isConnected) return;
-    if (newTab) await send('open', { url: element.href, background: true });
+    if (newTab) {
+      const url = linkURL(element);
+      if (url && ['http:', 'https:'].includes(url.protocol)) await send('open', { url: url.href, background: true });
+    }
     else if (element instanceof HTMLIFrameElement) {
       element.focus();
       if (document.activeElement !== element) element.contentWindow?.postMessage({ helixiumFocus: buildId }, '*');
     }
-    else { element.focus(); element.click(); }
+    else {
+      element.focus();
+      if (element instanceof HTMLElement) element.click();
+      else element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, composed: true }));
+    }
   }
 }
 function prompt(label, onSubmit, choices) {
@@ -261,7 +274,8 @@ async function execute(command, count) {
       break;
     }
     case 'open': prompt('Open HTTP(S) URL', url => send('open', { url: /^[a-z]+:/i.test(url) ? url : `https://${url}` })); break;
-    case 'next-tab': case 'previous-tab': case 'close-tab': await send(command, { count }); break;
+    case 'next-tab': case 'previous-tab': await send(command, { count }); break;
+    case 'close-tab': await send(command); break;
     default: throw new Error(`Unknown command: ${command}`);
   }
 }
@@ -294,6 +308,7 @@ document.addEventListener('keydown', event => {
     return;
   }
   const key = event.ctrlKey ? `Ctrl-${event.key.toLowerCase()}` : event.key;
+  if (key === 'Escape' && !overlay && state.mode === 'normal' && !state.count && !editable(event)) return;
   if (hints.length && key !== 'Escape') {
     event.preventDefault(); event.stopImmediatePropagation();
     hintKey(key).catch(error => message(error.message));

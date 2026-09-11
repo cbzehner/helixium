@@ -23,6 +23,7 @@ extra-trusted-public-keys = devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr6cv
 EOF
 if [[ ! -x /home/agent/.nix-profile/bin/nix ]]; then
   curl -fsSL https://releases.nixos.org/nix/nix-2.34.7/install -o /tmp/install-nix
+  echo "e9d447ce3d2ff62d7ff9cb6ef401de6fa8acb148839dd00f7271945d7b638b14  /tmp/install-nix" | sha256sum -c -
   sudo -H -u agent bash /tmp/install-nix --no-daemon --yes --no-channel-add
 fi
 if [[ ! -x /home/agent/.nix-profile/bin/devenv ]]; then

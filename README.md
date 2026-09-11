@@ -39,7 +39,8 @@ Copying requires a secure page (HTTPS or localhost), following the browser's
 `i` passes keys through until Escape. Input fields retain normal typing.
 
 `f` / `F` show hints for the current / a new background tab. Hints also
-focus controls and frames. `g n` / `g p` switch tabs; Space b filters tabs,
+focus controls and frames. Hints do not enter shadow roots.
+`g n` / `g p` switch tabs; Space b filters tabs,
 Space f opens a URL, Space c closes a tab. `/` / `?` search forward /
 backward; `n` / `N` repeat. Space ? searches all commands.
 
